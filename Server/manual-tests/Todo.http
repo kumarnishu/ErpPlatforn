@@ -1,0 +1,6 @@
+### Todo API health
+# Start from Server/: dotnet run --project Services/Todo/Todo.Api -- --urls http://localhost:5073
+@baseUrl = http://localhost:5073
+
+GET {{baseUrl}}/health
+Accept: application/json

@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../Context/BuildingBlocks.Context.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,1 +1,27 @@
-<Solution />
+<Solution>
+  <Folder Name="/Services/" />
+  <Folder Name="/Services/Todo/" />
+  <Folder Name="/tests/" />
+  <Folder Name="/tests/Services/" />
+  <Folder Name="/tests/Services/Todo/">
+    <Project Path="tests/Services/Todo/Todo.Domain.Tests/Todo.Domain.Tests.csproj" />
+  </Folder>
+  <Project Path="BuildingBlocks/Authentication/BuildingBlocks.Authentication.csproj" />
+  <Project Path="BuildingBlocks/Caching/BuildingBlocks.Caching.csproj" />
+  <Project Path="BuildingBlocks/Context/BuildingBlocks.Context.csproj" />
+  <Project Path="BuildingBlocks/Http/BuildingBlocks.Http.csproj" />
+  <Project Path="BuildingBlocks/MultiTenancy/BuildingBlocks.MultiTenancy.csproj" />
+  <Project Path="Services/Platform/Platform.Api/Platform.Api.csproj" />
+  <Project Path="Services/Platform/Platform.Application/Platform.Application.csproj" />
+  <Project Path="Services/Platform/Platform.Domain/Platform.Domain.csproj" />
+  <Project Path="Services/Platform/Platform.Infrastructure/Platform.Infrastructure.csproj" />
+  <Project Path="Services/ServiceTemplate/ServiceTemplate.Api/ServiceTemplate.Api.csproj" />
+  <Project Path="Services/ServiceTemplate/ServiceTemplate.Application/ServiceTemplate.Application.csproj" />
+  <Project Path="Services/ServiceTemplate/ServiceTemplate.Domain/ServiceTemplate.Domain.csproj" />
+  <Project Path="Services/ServiceTemplate/ServiceTemplate.Infrastructure/ServiceTemplate.Infrastructure.csproj" />
+  <Project Path="Services/Todo/Todo.Api/Todo.Api.csproj" />
+  <Project Path="Services/Todo/Todo.Application/Todo.Application.csproj" />
+  <Project Path="Services/Todo/Todo.Domain/Todo.Domain.csproj" />
+  <Project Path="Services/Todo/Todo.Infrastructure/Todo.Infrastructure.csproj" />
+</Solution>
+

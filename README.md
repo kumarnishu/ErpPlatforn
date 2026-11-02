@@ -1,20 +1,27 @@
-# ERP Platform
+﻿# ERP Platform
 
 ## Project structure
 
 ```text
 .
-├── docker/
-│   ├── docker-compose.yml   # Run one or all web apps for development
-│   ├── Dockerfile           # Shared image definition; APP_DIR selects an app
-│   └── README.md            # Docker setup, commands, and ports
-├── Server/
-│   └── Server.slnx          # .NET solution file
-├── webapp/
-│   ├── dashboard-webapp/    # Dashboard frontend
-│   ├── erp-webapp/          # ERP frontend
-│   ├── hrms-webapp/         # HRMS frontend
-│   └── superadmin-webapp/   # Superadmin frontend
-├── .dockerignore            # Excludes local files from Docker build context
-└── README.md
+|-- docker/                 # Docker Compose and development image
+|-- Server/
+|   |-- BuildingBlocks/     # Shared context, auth, cache, HTTP, tenancy
+|   |-- Services/           # Platform service and microservice template
+|   |-- manual-tests/       # Hand-run .http requests
+|   |-- tests/
+|   |-- Directory.Build.props
+|   |-- Server.slnx
+|   `-- README.md
+|-- webapp/
+|   |-- dashboard-webapp/
+|   |-- erp-webapp/
+|   |-- hrms-webapp/
+|   |-- superadmin-webapp/
+|   `-- README.md
+|-- .dockerignore
+|-- .gitignore
+`-- README.md
 ```
+
+Each folder under `webapp/` is an independent Vite/React application with its own dependencies and build configuration. Under `Server/`, `BuildingBlocks/` contains shared cross-service code, while `Services/` contains independently deployable services. See [Server/README.md](Server/README.md) for the shared service architecture and [webapp/README.md](webapp/README.md) for frontend structure.

@@ -1,0 +1,6 @@
+### Platform API health
+# Start from Server/: dotnet run --project Services/Platform/Platform.Api -- --urls http://localhost:5071
+@baseUrl = http://localhost:5071
+
+GET {{baseUrl}}/health
+Accept: application/json
