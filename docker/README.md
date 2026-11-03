@@ -1,6 +1,6 @@
 # Docker development environment
 
-The four web apps run inside Node containers. A host Node.js or npm installation is not required; Docker Desktop with its Linux engine or Docker Engine with the Compose plugin is sufficient.
+The API services and four web apps run in containers. A host .NET SDK, Node.js, or npm installation is not required; Docker Desktop with its Linux engine or Docker Engine with the Compose plugin is sufficient.
 
 ## Start
 
@@ -20,16 +20,26 @@ Open the apps at:
 | HRMS | http://localhost:3001 |
 | Dashboard | http://localhost:3002 |
 | Superadmin | http://localhost:3004 |
+| Platform API | http://localhost:5000/health |
+| Todo API | http://localhost:5001/health |
 
 ## Run only selected apps
 
-Pass one or more service names to Compose. For example, to run only ERP:
+Pass one or more service names to Compose. For example, to run only ERP and the Platform API:
 
 ```sh
-docker compose -f docker/docker-compose.yml up --build erp-webapp
+docker compose -f docker/docker-compose.yml up --build erp-webapp platform-api
 ```
 
 Use `hrms-webapp`, `dashboard-webapp`, or `superadmin-webapp` for the other apps. Omit the service name to run all four.
+
+The `platform-api` and `todo-api` services build the corresponding .NET 10 API projects from the repository root. They listen on container port 8080 and publish their health endpoints on host ports 5000 and 5001. The `ServiceTemplate` project is a starter template and is not included in the default Compose stack.
+
+To build a different API project with the shared server Dockerfile, provide its project path relative to `Server/`:
+
+```sh
+docker build -f docker/Server.Dockerfile --build-arg API_PROJECT=Services/ServiceTemplate/ServiceTemplate.Api/ServiceTemplate.Api.csproj --build-arg API_DLL=ServiceTemplate.Api.dll -t service-template-api .
+```
 
 ## Build and run one image directly
 
