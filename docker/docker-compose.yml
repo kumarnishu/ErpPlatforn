@@ -8,16 +8,6 @@ services:
     ports:
       - "5000:8080"
 
-  todo-api:
-    build:
-      context: ..
-      dockerfile: docker/Server.Dockerfile
-      args:
-        API_PROJECT: Services/Todo/Todo.Api/Todo.Api.csproj
-        API_DLL: Todo.Api.dll
-    ports:
-      - "5001:8080"
-
   erp-webapp:
     build:
       context: ..

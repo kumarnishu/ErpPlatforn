@@ -14,8 +14,7 @@ Server/
 |   `-- MultiTenancy/     # Tenant/service database routing contracts
 |-- Services/
 |   |-- Platform/         # Central tenant registry and platform capabilities
-|   |-- ServiceTemplate/  # Copy this boundary for each business microservice
-|   `-- Todo/             # First service created from the template
+|   `-- ServiceTemplate/  # Copy this boundary for each business microservice
 |-- manual-tests/         # Hand-run HTTP Client request files
 |-- tests/
 |-- Directory.Build.props
@@ -23,7 +22,7 @@ Server/
 `-- README.md
 ```
 
-Create future service folders such as Employees, Products, Orders, Inventory, or Customers from `Services/ServiceTemplate`. Each gets its own API, Application, Domain, and Infrastructure projects and its own database context and migrations. `Services/Todo` demonstrates the copied structure and adds a user-owned Todo domain entity and repository contract.
+Create future service folders such as Employees, Products, Orders, Inventory, or Customers from `Services/ServiceTemplate`. Each gets its own API, Application, Domain, and Infrastructure projects and its own database context and migrations.
 
 ## Request and database routing
 
@@ -38,7 +37,7 @@ The Platform service owns the authoritative central registry and tenant provisio
 ## Shared building blocks
 
 - **Context**: stable user and tenant context interfaces consumed by application code.
-- **Authentication**: shared claim names and HTTP request context adapters. The identity provider is not selected yet; add token validation and shared authorization policies here once selected.
+- **Authentication**: shared JWT bearer validation, claim names, and HTTP request context adapters. Configure each API with the same `Authentication:Authority` and `Authentication:Audience` values from the chosen identity provider.
 - **Caching**: user-context and tenant/service route caches backed by `IDistributedCache`; configure the Redis provider in each service host.
 - **Http**: common `ApiResponse<T>` and `ApiError` format plus exception middleware. Expected `ApiException` values keep their safe public message; unexpected exceptions are logged and returned as a generic 500 response with a trace ID.
 - **MultiTenancy**: tenant database route and resolver contracts. Service-specific persistence code owns the actual DbContext and provider configuration.
@@ -47,7 +46,7 @@ The Platform service owns the authoritative central registry and tenant provisio
 
 `Domain` has no shared-library dependencies. `Application` depends on its service Domain and shared Context/MultiTenancy contracts. `Infrastructure` implements persistence and integration details. `Api` composes the service layers with shared HTTP, authentication, caching, and tenancy behavior. Avoid putting business entities or service-specific database models in `BuildingBlocks`.
 
-The Platform, ServiceTemplate, and Todo APIs currently expose a health endpoint and shared request-context/error-handler registration. Todo has a domain entity and repository contract, but no CRUD endpoints or persistence implementation yet. Provider-specific token validation, Redis host configuration, database providers, and migrations remain to be selected and implemented.
+The Platform API implements the product catalog, tenant subscription, membership, and user-action authorization endpoints. The ServiceTemplate API remains a starter health endpoint for new business services.
 
 ## Build
 

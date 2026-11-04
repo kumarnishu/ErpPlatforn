@@ -1,5 +1,5 @@
 # Shared authentication
 
-This project defines the shared claim names and HTTP-scoped `IUserContext` / `ITenantContext` implementations used by every API. Each service should validate the same issuer, audience, signing keys, and token rules, then call `AddSharedRequestContext()` to expose the validated identity.
+This project defines shared claim names, JWT bearer validation, and HTTP-scoped `IUserContext` / `ITenantContext` implementations used by the APIs. Services can validate externally issued tokens with `Authentication:Authority` and `Authentication:Audience`, or locally issued tokens with `Authentication:Issuer`, `Authentication:Audience`, and a signing key; call `AddSharedJwtAuthentication()` and `AddSharedRequestContext()` to validate tokens and expose the resulting identity.
 
-The identity provider and token-validation package are intentionally not selected here. Add that provider configuration once in this shared project when the platform's identity provider is chosen. Never treat an unvalidated header or query parameter as the authenticated user or tenant.
+The Platform API issues tenant-scoped access tokens for its local tenant accounts. Other services should only accept validated bearer tokens. Never treat an unvalidated header or query parameter as the authenticated user or tenant.

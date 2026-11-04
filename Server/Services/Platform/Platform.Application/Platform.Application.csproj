@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <!-- Application contracts depend on domain types and shared request/error abstractions only. -->
     <ProjectReference Include="../Platform.Domain/Platform.Domain.csproj" />
+    <ProjectReference Include="../../../BuildingBlocks/Http/BuildingBlocks.Http.csproj" />
     <ProjectReference Include="../../../BuildingBlocks/Context/BuildingBlocks.Context.csproj" />
   </ItemGroup>
 </Project>

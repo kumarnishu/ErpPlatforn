@@ -1,7 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <ItemGroup>
-    <ProjectReference Include="../Todo.Domain/Todo.Domain.csproj" />
-    <ProjectReference Include="../../../BuildingBlocks/Context/BuildingBlocks.Context.csproj" />
-    <ProjectReference Include="../../../BuildingBlocks/MultiTenancy/BuildingBlocks.MultiTenancy.csproj" />
-  </ItemGroup>
-</Project>

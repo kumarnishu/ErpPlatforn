@@ -1,10 +1,9 @@
 <Solution>
   <Folder Name="/Services/" />
-  <Folder Name="/Services/Todo/" />
   <Folder Name="/tests/" />
   <Folder Name="/tests/Services/" />
-  <Folder Name="/tests/Services/Todo/">
-    <Project Path="tests/Services/Todo/Todo.Domain.Tests/Todo.Domain.Tests.csproj" />
+  <Folder Name="/tests/Services/Platform/">
+    <Project Path="tests/Services/Platform/Platform.Application.Tests/Platform.Application.Tests.csproj" />
   </Folder>
   <Project Path="BuildingBlocks/Authentication/BuildingBlocks.Authentication.csproj" />
   <Project Path="BuildingBlocks/Caching/BuildingBlocks.Caching.csproj" />
@@ -19,9 +18,5 @@
   <Project Path="Services/ServiceTemplate/ServiceTemplate.Application/ServiceTemplate.Application.csproj" />
   <Project Path="Services/ServiceTemplate/ServiceTemplate.Domain/ServiceTemplate.Domain.csproj" />
   <Project Path="Services/ServiceTemplate/ServiceTemplate.Infrastructure/ServiceTemplate.Infrastructure.csproj" />
-  <Project Path="Services/Todo/Todo.Api/Todo.Api.csproj" />
-  <Project Path="Services/Todo/Todo.Application/Todo.Application.csproj" />
-  <Project Path="Services/Todo/Todo.Domain/Todo.Domain.csproj" />
-  <Project Path="Services/Todo/Todo.Infrastructure/Todo.Infrastructure.csproj" />
 </Solution>
 

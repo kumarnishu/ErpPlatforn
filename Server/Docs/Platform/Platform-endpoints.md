@@ -1,123 +1,193 @@
-# Platform API
+# Platform API endpoints
 
-This document describes the planned HTTP surface for the Platform service. These endpoints are a design list; apart from `GET /health`, they are not implemented yet. The Platform service owns the central tenant registry, tenant provisioning lifecycle, subscriptions, and service-to-database routing metadata. Business records remain owned by their respective services.
+This document defines the Platform API surface for the current entities: `PlatformUser`, `Tenant`, `Product`, `ProductModule`, `ProductFeature`, `ProductAction`, `TenantProductSubscription`, `TenantMembership`, and `TenantUserAction`.
 
-Base path: `/api/v1`
+Apart from `GET /health`, the endpoints below are implemented in `Platform.Api`. Base path: `/api/v1`.
 
-## User roles
+Configure `ConnectionStrings:PlatformDatabase` or the `PLATFORM_DB_CONNECTION` environment variable with a SQL Server connection string, then apply the EF migration before using data routes. Without a connection string, the API keeps `/health` available and returns `503 Service Unavailable` for `/api/v1/*`.
 
-- **Superadmin**: platform-wide access to tenant registry, plans, subscriptions, feature overrides, provisioning, platform-user administration, database-route administration, and audit logs.
-- **Tenantadmin**: administrative access within assigned tenant(s), including tenant profile, tenant memberships, and viewing that tenant's subscription and effective features. Cannot administer other tenants or platform configuration.
-- **Tenantuser**: access to the tenant features granted to them. Has no administrative access to Platform endpoints unless explicitly granted a separate permission.
+For local tenant accounts, configure `Authentication:Issuer`, `Authentication:Audience`, and `Authentication:SigningKey` (at least 32 random bytes, preferably base64 encoded). Keep the signing key in an environment variable or secret store. The API issues short-lived tenant-scoped JWTs and stores salted PBKDF2 password hashes. Alternatively, configure both `Authentication:Authority` and `Authentication:Audience` for externally issued tokens. Do not configure local signing key and external authority together. Tenant account login requires the local signing key. Platform catalog writes require a `PlatformAdmin` role claim. User access checks use the authenticated subject, never a request-supplied user ID.
 
-Tenant roles come from the authenticated identity context and are scoped to a tenant. A user's tenant role must not grant access to another tenant. Platform-wide operations require the **Superadmin** role. Internal service endpoints require a trusted service identity and are not authorized by tenant-user roles.
+## Rules
+
+- Tenant signup must select at least one active product. Create the tenant, local user account, `TenantAdmin` membership, and initial active product subscription(s) in one database save.
+- A tenant may subscribe to multiple products, with one subscription record per tenant/product pair.
+- Do not cancel or suspend a tenant's final active product subscription while that tenant remains active. Return `409 Conflict` if the request would leave the tenant with no active product.
+- Tenant memberships are scoped by `TenantId` and have either the `TenantAdmin` or `TenantUser` role. Local account IDs are stable platform subjects.
+- A user may perform an action only if the tenant, membership, product subscription, product, module, feature, action, and exact user-action assignment are all active.
+- Catalog and subscription administration requires an authenticated `PlatformAdmin` role claim. Tenant user creation requires an active `TenantAdmin` membership for the tenant in the route. Never treat a route tenant ID as proof of membership.
+- Use `PATCH` to deactivate catalog records or revoke memberships/assignments. Avoid hard deletion of records referenced by subscriptions or assignments.
 
 ## Health
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `GET` | `/health` | Liveness check. No authentication required. |
+| `GET` | `/health` | Check that the Platform API is running. |
 
-## Tenants
-
-Superadmins manage all tenants. Tenantadmins can read and update only tenants they administer. Tenantusers cannot manage tenant records.
+## Current authenticated user
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `GET` | `/tenants` | List tenants visible to the caller. Platform admins can filter by `status`, `search`, and creation date. |
-| `POST` | `/tenants` | Register a tenant and start its provisioning workflow. Returns `202 Accepted` with the tenant and provisioning operation IDs. |
-| `GET` | `/tenants/{tenantId}` | Get tenant profile, status, and assigned plan. |
-| `PATCH` | `/tenants/{tenantId}` | Update editable tenant profile fields. |
-| `POST` | `/tenants/{tenantId}/suspend` | Suspend a tenant and prevent new tenant-scoped operations. |
-| `POST` | `/tenants/{tenantId}/reactivate` | Reactivate a suspended tenant. |
+| `GET` | `/auth/me` | Validate the bearer token and return its authenticated user ID and roles. |
+
+## Tenant account authentication
+
+Registration accepts one or more of the four seeded product IDs (ERP `1`, Checklist `2`, Data Studio `3`, HRMS `4`). Login requires a tenant ID because one email account can belong to multiple tenants; the returned JWT is scoped to the selected active membership and role.
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `POST` | `/auth/register-tenant-admin` | Publicly create a tenant, first tenant-admin account, membership, and selected product subscriptions. |
+| `POST` | `/auth/login` | Verify email/password and active membership, then issue a tenant-scoped JWT. |
+
+Registration request:
+
+```json
+{
+  "tenantKey": "acme",
+  "tenantName": "Acme Ltd",
+  "displayName": "Avery Admin",
+  "email": "admin@acme.example",
+  "password": "a-long-password-at-least-12-chars",
+  "productIds": [1]
+}
+```
+
+Login request:
+
+```json
+{ "email": "admin@acme.example", "password": "a-long-password-at-least-12-chars", "tenantId": 1 }
+```
+
+## Products
+
+Manage the top-level products: ERP, Checklists, Data Studio, and HRMS. `key` is a stable identifier; it must be unique. Product status is `Active` or `Inactive`.
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/products` | List products. Supports `status`, `page`, and `pageSize` filters. |
+| `POST` | `/products` | Create a product with `key` and `name`; it starts active. |
+| `GET` | `/products/{productId}` | Get a product. |
+| `PATCH` | `/products/{productId}` | Update the name or status. Product key is immutable after creation. |
+
+## Product modules
+
+Modules are always scoped to a product. A module key must be unique within its product.
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/products/{productId}/modules` | List the product's modules. Supports `status`, `page`, and `pageSize`. |
+| `POST` | `/products/{productId}/modules` | Create an active module with `key`, `name`, and optional `sortOrder`. |
+| `GET` | `/products/{productId}/modules/{moduleId}` | Get a module. |
+| `PATCH` | `/products/{productId}/modules/{moduleId}` | Update module name, sort order, or status. Module key is immutable. |
+
+## Product features
+
+Features are always scoped to a module. A feature key must be unique within its module.
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/products/{productId}/modules/{moduleId}/features` | List a module's features. Supports `status`, `page`, and `pageSize`. |
+| `POST` | `/products/{productId}/modules/{moduleId}/features` | Create an active feature with `key`, `name`, and optional `sortOrder`. |
+| `GET` | `/products/{productId}/modules/{moduleId}/features/{featureId}` | Get a feature. |
+| `PATCH` | `/products/{productId}/modules/{moduleId}/features/{featureId}` | Update feature name, sort order, or status. Feature key is immutable. |
+
+## Feature actions / permissions
+
+Actions are always scoped to a feature. Examples include `view`, `create`, `edit`, `export`, and `delete`. Action keys are data, so each feature can define only the permissions it needs. An action key must be unique within its feature.
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/products/{productId}/modules/{moduleId}/features/{featureId}/actions` | List a feature's actions. Supports `status`, `page`, and `pageSize`. |
+| `POST` | `/products/{productId}/modules/{moduleId}/features/{featureId}/actions` | Create an active action with `key` and `name`. |
+| `GET` | `/products/{productId}/modules/{moduleId}/features/{featureId}/actions/{actionId}` | Get an action. |
+| `PATCH` | `/products/{productId}/modules/{moduleId}/features/{featureId}/actions/{actionId}` | Update action name or status. Action key is immutable. |
+
+## Tenants and signup
+
+The public signup route is `/auth/register-tenant-admin`; validate distinct active product IDs and return `400 Bad Request` for an empty selection.
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `POST` | `/auth/register-tenant-admin` | Create the tenant, first tenant admin, and initial product subscription(s). |
+| `GET` | `/tenants` | List tenants visible to the caller. Supports `status`, `search`, `page`, and `pageSize`. |
+| `GET` | `/tenants/{tenantId}` | Get a tenant and its current active product subscriptions. |
+| `PATCH` | `/tenants/{tenantId}` | Update tenant name or status (`Active` / `Suspended`). |
+| `GET` | `/me/tenants` | List tenants where the authenticated user has an active membership, with their active product subscriptions. |
+
+Tenant keys are unique. A suspended tenant cannot access any product, even when its subscriptions and user assignments remain active.
+
+## Tenant product subscriptions
+
+Subscriptions are direct tenant-to-product relationships; there are no plans or billing entities in the current model. The unique key is `(tenantId, productId)`.
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/tenants/{tenantId}/product-subscriptions` | List the tenant's product subscriptions. Supports `status`, `page`, and `pageSize`. |
+| `PUT` | `/tenants/{tenantId}/product-subscriptions/{productId}` | Subscribe to a product or reactivate its existing subscription. Idempotent for an already active subscription. |
+| `GET` | `/tenants/{tenantId}/product-subscriptions/{productId}` | Get the tenant's subscription to one product. |
+| `PATCH` | `/tenants/{tenantId}/product-subscriptions/{productId}` | Change subscription status or expiration. Do not leave an active tenant with zero active products. |
+
+Only active products may be newly subscribed to. Deactivating a product should block new subscriptions; it must not silently remove tenant subscriptions.
 
 ## Tenant memberships
 
-Tenantadmins manage memberships for their tenant; Superadmins can manage memberships across tenants. Tenantusers cannot manage memberships. Role changes and removals must invalidate affected user-context cache entries.
+A membership links a local platform `userId` to one tenant and has a `TenantAdmin` or `TenantUser` role. The unique key is `(tenantId, userId)`.
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `GET` | `/tenants/{tenantId}/memberships` | List members, with pagination and optional role/status filters. |
-| `POST` | `/tenants/{tenantId}/memberships` | Add a user to a tenant and assign tenant roles. |
-| `GET` | `/tenants/{tenantId}/memberships/{userId}` | Get one user's membership and roles. |
-| `PATCH` | `/tenants/{tenantId}/memberships/{userId}` | Change tenant roles or membership status. |
-| `DELETE` | `/tenants/{tenantId}/memberships/{userId}` | Remove a user's tenant membership. |
-| `GET` | `/me/tenants` | List tenants the authenticated user can access. |
+| `GET` | `/tenants/{tenantId}/memberships` | List tenant memberships. Supports `status`, `search`, `page`, and `pageSize`. |
+| `POST` | `/tenants/{tenantId}/users` | Tenant admin creates a local tenant user with email and password. The new member starts with no action grants. |
+| `POST` | `/tenants/{tenantId}/memberships` | Platform admin links an existing external identity by its user ID. New memberships start as `TenantUser`. |
+| `GET` | `/tenants/{tenantId}/memberships/{membershipId}` | Get a membership and its assigned action permissions. |
+| `PATCH` | `/tenants/{tenantId}/memberships/{membershipId}` | Activate or revoke the membership. Revoking a membership immediately blocks all its action assignments. |
 
-## Service database routes
+## Tenant user action assignments
 
-Only trusted service identities can resolve routes. Route management is restricted to Superadmins and provisioning workflows. Tenantadmins and Tenantusers cannot manage or resolve database routes. Responses expose a secret reference, never a database password, credential, or connection string.
-
-| Method | Path | Purpose |
-| --- | --- | --- |
-| `GET` | `/tenants/{tenantId}/database-routes` | List configured routes for the tenant, optionally filtered by `serviceId`. Admin only. |
-| `PUT` | `/tenants/{tenantId}/database-routes/{serviceId}` | Create or replace a tenant/service route using a provider, database identifier, and secret reference. Admin only. |
-| `DELETE` | `/tenants/{tenantId}/database-routes/{serviceId}` | Remove a tenant/service route. Admin only. |
-| `POST` | `/internal/database-routes/resolve` | Resolve a route for `{ tenantId, serviceId }` for an authenticated service identity. Internal service-to-service endpoint. |
-
-## Plans and subscriptions
-
-Superadmins manage plans and subscription assignments. Tenantadmins can view their own tenant's subscription. Tenantusers cannot manage subscriptions.
+Assignments link a `TenantMembership` to a `ProductAction`. They grant only the exact action on the exact feature. Before assigning an action, verify the tenant has an active subscription to the product containing that action.
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `GET` | `/plans` | List available plans and their feature/usage entitlements. |
-| `POST` | `/plans` | Create a plan. Superadmin only. |
-| `GET` | `/plans/{planId}` | Get plan details. |
-| `PATCH` | `/plans/{planId}` | Update plan metadata or entitlements. Superadmin only. |
-| `GET` | `/tenants/{tenantId}/subscription` | Get a tenant's current subscription and effective entitlements. |
-| `PUT` | `/tenants/{tenantId}/subscription` | Assign or change a tenant's plan and subscription period. Superadmin only. |
-| `POST` | `/tenants/{tenantId}/subscription/cancel` | Schedule or apply cancellation according to the subscription policy. Superadmin only. |
+| `GET` | `/tenants/{tenantId}/memberships/{membershipId}/actions` | List actions assigned to the membership. Supports `productId`, `isActive`, `page`, and `pageSize`. |
+| `PUT` | `/tenants/{tenantId}/memberships/{membershipId}/actions/{actionId}` | Assign or reactivate the action. Idempotent for an already active assignment. |
+| `DELETE` | `/tenants/{tenantId}/memberships/{membershipId}/actions/{actionId}` | Revoke the assignment by setting `IsActive` to `false`; retain the record. |
+| `GET` | `/tenants/{tenantId}/me/actions` | List the authenticated user's effective active actions for the tenant. Supports `productId`, `page`, and `pageSize`. |
 
-## Feature access
+Return `404` when the membership or action is outside the requested tenant/product scope. Return `409 Conflict` if the tenant has no active subscription to the action's product.
 
-The Platform service owns tenant-level feature entitlements. Superadmins manage feature definitions and tenant overrides. Tenantadmins can view effective features for their own tenant; Tenantusers receive only the feature access granted by the tenant and their permissions. A business service remains responsible for enforcing its own feature gates using trusted platform data or a cache.
+## Authorization check
 
-| Method | Path | Purpose |
-| --- | --- | --- |
-| `GET` | `/features` | List known platform feature definitions. Superadmin only. |
-| `PUT` | `/tenants/{tenantId}/features/{featureKey}` | Override a tenant's feature state or limits. Superadmin only. |
-| `DELETE` | `/tenants/{tenantId}/features/{featureKey}` | Remove a tenant override and return to plan defaults. Superadmin only. |
-| `GET` | `/tenants/{tenantId}/features` | Get effective feature access after plan entitlements and overrides. Tenantadmin for their tenant, Superadmin for any tenant, or a trusted service. |
-
-## Provisioning operations
-
-Provisioning is asynchronous and restricted to Superadmins or trusted provisioning workflows. Tenantadmins and Tenantusers cannot start or retry provisioning. Clients can poll the operation resource and retry a failed operation where supported. Tenant creation and other retryable commands should accept an `Idempotency-Key` header.
+Product services need an authoritative answer for the authenticated user and requested product action. Derive the user subject from a validated user token or trusted service identity; do not accept an arbitrary `userId` as authorization proof.
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `POST` | `/tenants/{tenantId}/provisioning` | Start or retry provisioning tasks for an existing tenant. Superadmin or trusted provisioning identity. |
-| `GET` | `/provisioning/{operationId}` | Get operation state, progress, timestamps, and safe error details. Superadmin only. |
-| `GET` | `/tenants/{tenantId}/provisioning` | List provisioning operations for a tenant. Superadmin only. |
-| `POST` | `/provisioning/{operationId}/retry` | Retry a retryable failed operation. Superadmin only. |
+| `POST` | `/tenants/{tenantId}/authorization/check` | Check whether the authenticated tenant user may perform an action. |
 
-## Platform users
+Example request:
 
-These are Superadmin accounts and roles, distinct from tenant memberships. Only Superadmins can administer platform users. Identity credentials remain with the configured identity provider.
+```json
+{
+  "productKey": "erp",
+  "moduleKey": "invoices",
+  "featureKey": "invoice-records",
+  "actionKey": "export"
+}
+```
 
-| Method | Path | Purpose |
-| --- | --- | --- |
-| `GET` | `/platform-users` | List platform users. Superadmin only. |
-| `POST` | `/platform-users` | Grant an existing identity platform access as a Superadmin. Superadmin only. |
-| `GET` | `/platform-users/{userId}` | Get a platform user's roles and status. Superadmin only. |
-| `PATCH` | `/platform-users/{userId}` | Update platform roles or status. Superadmin only. |
-| `DELETE` | `/platform-users/{userId}` | Revoke Superadmin access without deleting the identity-provider account. Superadmin only. |
-| `GET` | `/me` | Get the authenticated caller's profile, platform roles, and tenant memberships. Available to authenticated users. |
+Return `200 OK` with `{ "allowed": true }` when every required record and the exact assignment are active. Return `{ "allowed": false }` with a stable denial code such as `tenant_inactive`, `membership_inactive`, `product_not_subscribed`, `catalog_item_inactive`, or `action_not_assigned` for a valid request that fails authorization. Use `400 Bad Request` for a malformed request and `404 Not Found` when the requested catalog path does not exist.
 
-## Audit log
+## Consistent authorization predicate
 
-Audit records are append-only. Queries require Superadmin permissions and should be paginated and filterable by tenant, actor, action, and time range. Tenantadmins and Tenantusers cannot query platform audit logs. Sensitive secrets and credential values must never be recorded.
+For a requested `(tenantId, authenticatedUserId, productKey, moduleKey, featureKey, actionKey)`, allow only when all of the following are true:
 
-| Method | Path | Purpose |
-| --- | --- | --- |
-| `GET` | `/audit-logs` | Search platform audit events with pagination and filters. Superadmin only. |
-| `GET` | `/audit-logs/{eventId}` | Get one audit event. Superadmin only. |
+```text
+tenant.status == Active
+AND membership(tenantId, authenticatedUserId).status == Active
+AND tenantProductSubscription(tenantId, productId).status == Active
+AND product.status == Active
+AND module.status == Active
+AND feature.status == Active
+AND action.status == Active
+AND tenantUserAction(membershipId, actionId).isActive == true
+```
 
-## API conventions
-
-- Use JSON request/response bodies and the shared `ApiResponse<T>` / `ApiError` envelope.
-- Use `401` for missing or invalid identity, `403` for insufficient permissions, `404` for missing resources, `409` for state conflicts, and `422` for validation failures.
-- List endpoints use cursor pagination (`cursor`, `pageSize`) and return a continuation cursor.
-- Use `ETag`/`If-Match` for updates where concurrent edits could overwrite state.
-- Return `202 Accepted` plus an operation resource for long-running provisioning; do not keep HTTP requests open while infrastructure is being provisioned.
-- Protect internal endpoints with service-to-service authentication and least-privilege service identities.
+The tenant subscription, membership, and action assignment must all refer to the same tenant and the requested product action. A UI hiding a feature is not authorization; product services must enforce this predicate on every protected request.
