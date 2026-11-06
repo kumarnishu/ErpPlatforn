@@ -7,6 +7,9 @@ services:
         API_PROJECT: Services/Platform/Platform.Api/Platform.Api.csproj
     ports:
       - "5000:8080"
+    env_file:
+      # Keep the local JWT signing secret out of the tracked Compose file.
+      - ./platform-api.env
 
   erp-webapp:
     build:
@@ -67,3 +70,4 @@ services:
       - ../webapp/superadmin-webapp:/app
       - /app/node_modules
     command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3004"]
+

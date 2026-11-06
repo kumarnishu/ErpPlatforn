@@ -3,7 +3,7 @@
 # Authentication:Issuer, Audience, and a 32-byte-or-longer SigningKey, and apply the EF migrations first.
 # Use the seeded product IDs below. Catalog administration still requires a PlatformAdmin JWT.
 
-@baseUrl = http://localhost:5071
+@baseUrl = http://localhost:5000
 @adminToken = replace-with-platform-admin-jwt
 @ownerToken = replace-with-tenant-owner-jwt
 @tenantUserToken = replace-with-tenant-user-jwt
@@ -13,6 +13,9 @@
 @actionId = 1
 @tenantId = 1
 @membershipId = 1
+
+# After tenant registration, copy the returned tenant ID into @tenantId. After each login, copy
+# the returned accessToken into @ownerToken or @tenantUserToken before sending protected requests.
 
 ### Health
 GET {{baseUrl}}/health
@@ -70,16 +73,6 @@ Accept: application/json
 ### List active products for signup
 GET {{baseUrl}}/api/v1/products?status=Active&page=1&pageSize=50
 Accept: application/json
-
-### Create a product (admin)
-POST {{baseUrl}}/api/v1/products
-Authorization: Bearer {{adminToken}}
-Content-Type: application/json
-
-{
-  "key": "erp",
-  "name": "ERP"
-}
 
 ### Create a module under the product (admin)
 POST {{baseUrl}}/api/v1/products/{{productId}}/modules
