@@ -1,6 +1,0 @@
-### Service template API health
-# Start from Server/: dotnet run --project Services/ServiceTemplate/ServiceTemplate.Api -- --urls http://localhost:5072
-@baseUrl = http://localhost:5072
-
-GET {{baseUrl}}/health
-Accept: application/json

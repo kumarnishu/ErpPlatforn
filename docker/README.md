@@ -1,6 +1,6 @@
 # Docker development environment
 
-The API services and four web apps run in containers. A host .NET SDK, Node.js, or npm installation is not required; Docker Desktop with its Linux engine or Docker Engine with the Compose plugin is sufficient.
+The four web apps run in containers. Docker Desktop with its Linux engine or Docker Engine with the Compose plugin is sufficient; a host Node.js or npm installation is not required.
 
 ## Start
 
@@ -20,38 +20,20 @@ Open the apps at:
 | HRMS | http://localhost:3001 |
 | Dashboard | http://localhost:3002 |
 | Superadmin | http://localhost:3004 |
-| Platform API | http://localhost:5000/health |
 
-## Run only selected apps
+## Run selected apps
 
-Pass one or more service names to Compose. For example, to run only ERP and the Platform API:
-
-```sh
-docker compose -f docker/docker-compose.yml up --build erp-webapp platform-api
-```
-
-Use `hrms-webapp`, `dashboard-webapp`, or `superadmin-webapp` for the other apps. Omit the service name to run all four.
-
-The `platform-api` service builds the Platform .NET 10 API project from the repository root. It listens on container port 8080 and publishes its health endpoint on host port 5000. The `ServiceTemplate` project is a starter template and is not included in the default Compose stack.
-
-To build a different API project with the shared server Dockerfile, provide its project path relative to `Server/`:
+Pass one or more app names to Compose, for example:
 
 ```sh
-docker build -f docker/Server.Dockerfile --build-arg API_PROJECT=Services/ServiceTemplate/ServiceTemplate.Api/ServiceTemplate.Api.csproj --build-arg API_DLL=ServiceTemplate.Api.dll -t service-template-api .
+docker compose -f docker/docker-compose.yml up --build erp-webapp dashboard-webapp
 ```
 
-## Build and run one image directly
+The other app names are `hrms-webapp` and `superadmin-webapp`. Omit names to run all four.
 
-The shared Dockerfile can also build an individual app without Compose. For example, build and run ERP:
+## Stop and refresh dependencies
 
-```sh
-docker build -f docker/Dockerfile --build-arg APP_DIR=erp-webapp -t erp-webapp .
-docker run --rm -p 3000:3000 erp-webapp
-```
-
-For the other apps, set `APP_DIR` to `hrms-webapp`, `dashboard-webapp`, or `superadmin-webapp`, and map their configured ports: 3001, 3002, or 3004.
-
-Run the same command with `-d` to start in the background. View logs with:
+View logs with:
 
 ```sh
 docker compose -f docker/docker-compose.yml logs -f

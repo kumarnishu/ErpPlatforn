@@ -1,5 +1,5 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
-ARG API_PROJECT=Services/Platform/Platform.Api/Platform.Api.csproj
+ARG API_PROJECT
 WORKDIR /src
 
 COPY Server/ ./Server/

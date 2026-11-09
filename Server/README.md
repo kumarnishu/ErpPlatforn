@@ -1,52 +1,33 @@
-﻿# Shared service architecture
+# Shared server building blocks
 
-This server layout is intended for independently deployable microservices. Each service owns its domain, database context, migrations, and database provider. Shared libraries hold only contracts and cross-cutting behavior that should stay consistent across services.
+`Server/` currently contains only reusable .NET libraries. Service implementations have been removed so service boundaries and APIs can be redesigned independently.
 
 ## Layout
 
 ```text
 Server/
 |-- BuildingBlocks/
-|   |-- Context/          # IUserContext and ITenantContext contracts
-|   |-- Authentication/   # Shared claim mapping and HTTP context registration
-|   |-- Caching/          # Redis-compatible user and route caches
-|   |-- Http/             # API response envelope and global error middleware
-|   `-- MultiTenancy/     # Tenant/service database routing contracts
-|-- Services/
-|   |-- Platform/         # Central tenant registry and platform capabilities
-|   `-- ServiceTemplate/  # Copy this boundary for each business microservice
-|-- manual-tests/         # Hand-run HTTP Client request files
-|-- tests/
+|   |-- Authentication/   # JWT validation and HTTP request context adapters
+|   |-- Caching/          # Distributed user context and tenant route caches
+|   |-- Context/          # User and tenant context contracts
+|   |-- Http/             # API response types and exception middleware
+|   `-- MultiTenancy/     # Tenant/service database route contracts
 |-- Directory.Build.props
 |-- Server.slnx
 `-- README.md
 ```
 
-Create future service folders such as Employees, Products, Orders, Inventory, or Customers from `Services/ServiceTemplate`. Each gets its own API, Application, Domain, and Infrastructure projects and its own database context and migrations.
+## Building blocks
 
-## Request and database routing
-
-1. The service validates the bearer token using the shared identity-provider configuration.
-2. `AddSharedRequestContext()` exposes the validated user ID, roles, and tenant ID as scoped `IUserContext` and `ITenantContext` services.
-3. The service authorizes that user for the selected tenant before accessing tenant data.
-4. `ITenantDatabaseResolver` resolves a route using both the tenant ID and the service's stable service ID. One tenant can therefore map to different databases for different microservices.
-5. The service's infrastructure retrieves credentials from a secret store using `SecretReference`, then creates its own provider-specific DbContext and connection pool.
-
-The Platform service owns the authoritative central registry and tenant provisioning lifecycle. Redis may cache short-lived user authorization snapshots and non-secret route metadata. Cache keys include tenant plus user or service identity. Do not cache tokens or plaintext database credentials, and invalidate user context after membership or role changes.
-
-## Shared building blocks
-
-- **Context**: stable user and tenant context interfaces consumed by application code.
-- **Authentication**: shared JWT bearer validation, claim names, and HTTP request context adapters. Configure each API with the same `Authentication:Authority` and `Authentication:Audience` values from the chosen identity provider.
-- **Caching**: user-context and tenant/service route caches backed by `IDistributedCache`; configure the Redis provider in each service host.
-- **Http**: common `ApiResponse<T>` and `ApiError` format plus exception middleware. Expected `ApiException` values keep their safe public message; unexpected exceptions are logged and returned as a generic 500 response with a trace ID.
-- **MultiTenancy**: tenant database route and resolver contracts. Service-specific persistence code owns the actual DbContext and provider configuration.
+- **Context** defines stable user and tenant context interfaces.
+- **Authentication** provides shared JWT bearer validation, claim names, and adapters that expose the authenticated request as `IUserContext` and `ITenantContext`.
+- **Caching** provides `IDistributedCache`-backed user context and tenant database route caches.
+- **Http** defines the common `ApiResponse<T>` and `ApiError` format and global exception middleware.
+- **MultiTenancy** defines tenant database route and resolver contracts. A future service owns its DbContext, provider configuration, and persistence implementation.
 
 ## Dependency direction
 
-`Domain` has no shared-library dependencies. `Application` depends on its service Domain and shared Context/MultiTenancy contracts. `Infrastructure` implements persistence and integration details. `Api` composes the service layers with shared HTTP, authentication, caching, and tenancy behavior. Avoid putting business entities or service-specific database models in `BuildingBlocks`.
-
-The Platform API implements the product catalog, tenant subscription, membership, and user-action authorization endpoints. The ServiceTemplate API remains a starter health endpoint for new business services.
+`Context` and `MultiTenancy` are contracts for service application code. `Authentication`, `Caching`, and `Http` are host-level integrations. Keep business entities, service-specific persistence models, and API endpoints in the services that are added later, rather than in `BuildingBlocks`.
 
 ## Build
 
