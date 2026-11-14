@@ -5,6 +5,8 @@ WORKDIR /src
 COPY Server/ ./Server/
 WORKDIR /src/Server
 RUN dotnet restore "$API_PROJECT"
+RUN dotnet restore Services/Platform/Platform.Application.Tests/Platform.Application.Tests.csproj
+RUN dotnet test Services/Platform/Platform.Application.Tests/Platform.Application.Tests.csproj --configuration Release --no-restore
 RUN dotnet publish "$API_PROJECT" --configuration Release --no-restore --output /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime

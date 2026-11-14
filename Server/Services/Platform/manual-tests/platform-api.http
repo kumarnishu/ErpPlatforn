@@ -1,0 +1,30 @@
+@baseUrl = http://localhost:5000
+@uniqueId = {{$guid}}
+
+### Health check: works even when the database is not configured
+GET {{baseUrl}}/health
+Accept: application/json
+
+### Successful tenant signup: requires PlatformDatabase to be configured
+POST {{baseUrl}}/api/v1/signup
+Content-Type: application/json
+
+{
+  "tenantName": "Manual Test Tenant",
+  "tenantKey": "manual-{{uniqueId}}",
+  "adminName": "Manual Test Admin",
+  "adminEmail": "manual-{{uniqueId}}@example.com",
+  "password": "manual-test-password-123"
+}
+
+### Validation error: expected HTTP 400 (password is shorter than 12 characters)
+POST {{baseUrl}}/api/v1/signup
+Content-Type: application/json
+
+{
+  "tenantName": "Invalid Test Tenant",
+  "tenantKey": "invalid-{{uniqueId}}",
+  "adminName": "Manual Test Admin",
+  "adminEmail": "invalid-{{uniqueId}}@example.com",
+  "password": "short"
+}
