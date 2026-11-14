@@ -1,4 +1,15 @@
 services:
+  platform-api:
+    build:
+      context: ..
+      dockerfile: docker/Server.Dockerfile
+      args:
+        API_PROJECT: Services/Platform/Platform.Api/Platform.Api.csproj
+    ports:
+      - "5000:8080"
+    env_file:
+      - ./platform-api.env
+
   erp-webapp:
     build:
       context: ..

@@ -7,6 +7,7 @@
 |-- docker/                 # Docker Compose and development image
 |-- Server/
 |   |-- BuildingBlocks/     # Shared context, auth, cache, HTTP, tenancy
+|   |-- Services/Platform/  # Tenant signup API and persistence
 |   |-- Directory.Build.props
 |   |-- Server.slnx
 |   `-- README.md
@@ -21,4 +22,4 @@
 `-- README.md
 ```
 
-Each folder under `webapp/` is an independent Vite/React application with its own dependencies and build configuration. `Server/` currently contains only shared .NET building blocks; service implementations were removed for redesign. See [Server/README.md](Server/README.md) for the shared server libraries and [webapp/README.md](webapp/README.md) for frontend structure.
+Each folder under `webapp/` is an independent Vite/React application with its own dependencies and build configuration. `Server/` contains shared .NET building blocks and a Platform service for tenant signup. See [Server/README.md](Server/README.md) for server setup and [webapp/README.md](webapp/README.md) for frontend structure.

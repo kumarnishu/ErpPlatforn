@@ -1,8 +1,14 @@
 <Solution>
   <Folder Name="/BuildingBlocks/" />
+  <Folder Name="/Services/" />
   <Project Path="BuildingBlocks/Authentication/BuildingBlocks.Authentication.csproj" />
   <Project Path="BuildingBlocks/Caching/BuildingBlocks.Caching.csproj" />
   <Project Path="BuildingBlocks/Context/BuildingBlocks.Context.csproj" />
   <Project Path="BuildingBlocks/Http/BuildingBlocks.Http.csproj" />
   <Project Path="BuildingBlocks/MultiTenancy/BuildingBlocks.MultiTenancy.csproj" />
+  <Project Path="Services/Platform/Platform.Api/Platform.Api.csproj" />
+  <Project Path="Services/Platform/Platform.Application/Platform.Application.csproj" />
+  <Project Path="Services/Platform/Platform.Application.Tests/Platform.Application.Tests.csproj" />
+  <Project Path="Services/Platform/Platform.Domain/Platform.Domain.csproj" />
+  <Project Path="Services/Platform/Platform.Infrastructure/Platform.Infrastructure.csproj" />
 </Solution>
