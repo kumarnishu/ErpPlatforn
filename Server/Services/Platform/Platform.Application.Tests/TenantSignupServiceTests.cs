@@ -32,7 +32,7 @@ public sealed class TenantSignupServiceTests
         Assert.Equal(TenantMembershipRole.TenantAdmin, repository.Membership.Role);
         Assert.Contains(repository.Membership, repository.Tenant.Memberships);
         Assert.Contains(repository.Membership, repository.User.Memberships);
-        Assert.Equal("ACME", repository.LastCheckedTenantKey);
+        Assert.Equal("acme", repository.LastCheckedTenantKey);
         Assert.Equal("ADA@EXAMPLE.COM", repository.LastCheckedEmail);
     }
 
