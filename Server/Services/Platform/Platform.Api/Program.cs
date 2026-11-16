@@ -5,6 +5,7 @@ using Platform.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
+builder.Services.AddApiSwagger("Platform API", "Tenant signup API");
 
 var connectionString = builder.Configuration.GetConnectionString("PlatformDatabase")
     ?? builder.Configuration["PLATFORM_DB_CONNECTION"];
@@ -17,6 +18,7 @@ if (!string.IsNullOrWhiteSpace(connectionString))
 
 var app = builder.Build();
 app.UseMiddleware<GlobalExceptionMiddleware>();
+app.UseApiSwagger("Platform API");
 app.MapGet("/health", () => Results.Ok(ApiResponse<object>.Success(new { service = "platform", status = "ok" }, "health-check")));
 if (!string.IsNullOrWhiteSpace(connectionString))
 {

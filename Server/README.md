@@ -21,6 +21,10 @@ Server/
 
 `POST /api/v1/signup` accepts `tenantName`, `tenantKey`, `adminName`, `adminEmail`, and `password`. It creates an active tenant, a local platform user with an ASP.NET Core Identity password hash, and that user's `TenantAdmin` membership. The tenant, user, and membership are persisted together. Tenant keys and normalized email addresses are unique.
 
+Swagger UI is available at `/swagger` and the OpenAPI document at `/swagger/v1/swagger.json`.
+
+The reusable Swagger setup lives in `BuildingBlocks.Http`. For another API project that references this building block, register it with `builder.Services.AddApiSwagger("API title", "API description")` and enable it with `app.UseApiSwagger("API title")`.
+
 Example request:
 
 ```json

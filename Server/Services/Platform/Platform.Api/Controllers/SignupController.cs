@@ -10,9 +10,6 @@ namespace Platform.Api.Controllers;
 public sealed class SignupController(ITenantSignupService signupService) : ControllerBase
 {
     [HttpPost]
-    [ProducesResponseType(typeof(ApiResponse<TenantSignupResult>), StatusCodes.Status201Created)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> SignUp([FromBody] TenantSignupRequest request, CancellationToken cancellationToken)
     {
         var result = await signupService.SignUpAsync(request, cancellationToken);
