@@ -12,7 +12,15 @@ docker compose -f docker/docker-compose.yml up --build
 
 Compose builds each app from its own `package.json` and lockfile, installs dependencies in the container, and mounts the app source for live reload. On Windows, file watching uses polling.
 
-The Platform API uses SQL Server. Copy `docker/platform-api.env.example` to `docker/platform-api.env` and set `ConnectionStrings__PlatformDatabase` to a SQL Server instance reachable from the container before starting Compose.
+The Platform API uses SQL Server Express in the Compose stack. Compose starts the database, waits for its health check, and applies the Platform database migrations when the API starts. The database files persist in the `platform-sql-data` volume.
+
+Start all services from the repository root:
+
+```sh
+docker compose -f docker/docker-compose.yml up --build
+```
+
+The local development SQL Server password defaults to `LocalDev_StrongPassw0rd!`. To use a different password, set `MSSQL_SA_PASSWORD` in your shell before running Compose. SQL Server requires a strong password. The database is available on `localhost:1433`; the API connects to it using the Compose service name.
 
 Open the apps at:
 
@@ -42,17 +50,19 @@ View logs with:
 docker compose -f docker/docker-compose.yml logs -f
 ```
 
-Stop the apps with:
+Stop the apps while keeping SQL Server data with:
 
 ```sh
 docker compose -f docker/docker-compose.yml down
 ```
 
+To also delete the database files, remove the Compose volumes with `docker compose -f docker/docker-compose.yml down -v`.
+
 If a `package.json` or lockfile changes and dependencies need refreshing, recreate the containers and their dependency volumes:
 
 ```sh
-docker compose -f docker/docker-compose.yml down -v
+docker compose -f docker/docker-compose.yml down
 docker compose -f docker/docker-compose.yml up --build
 ```
 
-The `-v` option removes Compose-managed volumes, including container-installed `node_modules`; it does not remove project files.
+Removing volumes also deletes the SQL Server data. The regular `down` command preserves database data.

@@ -1,4 +1,5 @@
 using BuildingBlocks.Http;
+using Microsoft.EntityFrameworkCore;
 using Platform.Application.Services;
 using Platform.Infrastructure;
 using Platform.Infrastructure.Persistence;
@@ -22,6 +23,12 @@ app.UseApiSwagger("Platform API");
 app.MapGet("/health", () => Results.Ok(ApiResponse<object>.Success(new { service = "platform", status = "ok" }, "health-check")));
 if (!string.IsNullOrWhiteSpace(connectionString))
 {
+    await using (var scope = app.Services.CreateAsyncScope())
+    {
+        var db = scope.ServiceProvider.GetRequiredService<PlatformDbContext>();
+        await db.Database.MigrateAsync();
+    }
+
     app.MapControllers();
 }
 else
