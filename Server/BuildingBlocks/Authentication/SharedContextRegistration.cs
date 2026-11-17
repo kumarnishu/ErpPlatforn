@@ -10,7 +10,6 @@ public static class SharedContextRegistration
     {
         services.AddHttpContextAccessor();
         services.TryAddScoped<IUserContext, HttpUserContext>();
-        services.TryAddScoped<ITenantContext, HttpTenantContext>();
         return services;
     }
 }

@@ -8,9 +8,9 @@ public sealed class PlatformDbContextFactory : IDesignTimeDbContextFactory<Platf
     public PlatformDbContext CreateDbContext(string[] args)
     {
         var connectionString = Environment.GetEnvironmentVariable("PLATFORM_DB_CONNECTION")
-            ?? "Server=localhost;Database=ErpPlatform;Trusted_Connection=True;TrustServerCertificate=True";
+            ?? "Host=localhost;Port=5432;Database=platform;Username=platform;Password=platform_dev_password";
         var options = new DbContextOptionsBuilder<PlatformDbContext>()
-            .UseSqlServer(connectionString)
+            .UseNpgsql(connectionString)
             .Options;
         return new PlatformDbContext(options);
     }

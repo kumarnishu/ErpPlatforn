@@ -1,20 +1,20 @@
 services:
-  platform-db:
-    image: mcr.microsoft.com/mssql/server:2022-latest
+  postgres:
+    image: postgres:17-alpine
+    container_name: erp-postgres
     environment:
-      ACCEPT_EULA: "Y"
-      MSSQL_PID: Express
-      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-LocalDev_StrongPassw0rd!}
+      POSTGRES_DB: platform
+      POSTGRES_USER: platform
+      POSTGRES_PASSWORD: platform_dev_password
     ports:
-      - "1433:1433"
+      - "5432:5432"
     volumes:
-      - platform-sql-data:/var/opt/mssql
+      - postgresdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q \"SELECT 1\" || exit 1"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U platform -d platform"]
+      interval: 5s
       timeout: 5s
-      retries: 20
-      start_period: 20s
+      retries: 10
 
   platform-api:
     build:
@@ -24,10 +24,10 @@ services:
         API_PROJECT: Services/Platform/Platform.Api/Platform.Api.csproj
     ports:
       - "5000:8080"
-    environment:
-      ConnectionStrings__PlatformDatabase: "Server=platform-db,1433;Database=Platform;User Id=sa;Password=${MSSQL_SA_PASSWORD:-LocalDev_StrongPassw0rd!};TrustServerCertificate=True;Encrypt=False"
+    env_file:
+      - ./platform-api.env
     depends_on:
-      platform-db:
+      postgres:
         condition: service_healthy
 
   erp-webapp:
@@ -91,5 +91,4 @@ services:
     command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3004"]
 
 volumes:
-  platform-sql-data:
-
+  postgresdata:

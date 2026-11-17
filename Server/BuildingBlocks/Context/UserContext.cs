@@ -2,5 +2,6 @@ namespace BuildingBlocks.Context;
 
 public sealed record UserContext(
     string? UserId,
+    string? TenantId,
     bool IsAuthenticated,
-    IReadOnlyCollection<string> Roles) : IUserContext;
+    string Role) : IUserContext;

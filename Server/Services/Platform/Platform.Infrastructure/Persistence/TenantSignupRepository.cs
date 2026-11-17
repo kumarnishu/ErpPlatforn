@@ -14,7 +14,7 @@ public sealed class TenantSignupRepository(PlatformDbContext db) : ITenantSignup
 
     public async Task AddTenantWithAdminAsync(
         Tenant tenant,
-        PlatformUser user,
+        User user,
         TenantMembership membership,
         CancellationToken cancellationToken)
     {

@@ -129,7 +129,7 @@ public sealed class TenantSignupServiceTests
         public string? LastCheckedEmail { get; private set; }
         public int AddCount { get; private set; }
         public Tenant? Tenant { get; private set; }
-        public PlatformUser? User { get; private set; }
+        public User? User { get; private set; }
         public TenantMembership? Membership { get; private set; }
 
         public Task<bool> TenantKeyExistsAsync(string key, CancellationToken cancellationToken)
@@ -144,7 +144,7 @@ public sealed class TenantSignupServiceTests
             return Task.FromResult(EmailExists);
         }
 
-        public Task AddTenantWithAdminAsync(Tenant tenant, PlatformUser user, TenantMembership membership, CancellationToken cancellationToken)
+        public Task AddTenantWithAdminAsync(Tenant tenant, User user, TenantMembership membership, CancellationToken cancellationToken)
         {
             AddCount++;
             if (Conflict is not null)

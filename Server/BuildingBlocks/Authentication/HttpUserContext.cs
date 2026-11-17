@@ -9,10 +9,7 @@ internal sealed class HttpUserContext(IHttpContextAccessor accessor) : IUserCont
     private ClaimsPrincipal? Principal => accessor.HttpContext?.User;
 
     public string? UserId => Principal?.FindFirst(AuthenticationClaimTypes.UserId)?.Value;
+    public string? TenantId => Principal?.FindFirst(AuthenticationClaimTypes.TenantId)?.Value;
     public bool IsAuthenticated => Principal?.Identity?.IsAuthenticated == true;
-    public IReadOnlyCollection<string> Roles => Principal?
-        .FindAll(AuthenticationClaimTypes.Role)
-        .Select(claim => claim.Value)
-        .Distinct(StringComparer.Ordinal)
-        .ToArray() ?? [];
+    public string Role => Principal?.FindFirst(AuthenticationClaimTypes.Role)?.Value ?? string.Empty;
 }

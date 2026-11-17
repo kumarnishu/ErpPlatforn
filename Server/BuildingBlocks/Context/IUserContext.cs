@@ -4,6 +4,7 @@ namespace BuildingBlocks.Context;
 public interface IUserContext
 {
     string? UserId { get; }
+    string? TenantId { get; }
     bool IsAuthenticated { get; }
-    IReadOnlyCollection<string> Roles { get; }
+    string Role { get; }
 }

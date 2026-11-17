@@ -22,7 +22,7 @@ public sealed class Tenant
     public ICollection<TenantMembership> Memberships { get; set; } = new List<TenantMembership>();
 }
 
-public sealed class PlatformUser
+public sealed class User
 {
     public int Id { get; set; }
     public string UserId { get; set; } = $"usr_{Guid.NewGuid():N}";
@@ -43,5 +43,5 @@ public sealed class TenantMembership
     public TenantMembershipRole Role { get; set; } = TenantMembershipRole.TenantUser;
     public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
     public Tenant Tenant { get; set; } = null!;
-    public PlatformUser User { get; set; } = null!;
+    public User User { get; set; } = null!;
 }

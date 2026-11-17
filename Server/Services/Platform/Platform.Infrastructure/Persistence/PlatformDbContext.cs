@@ -6,7 +6,7 @@ namespace Platform.Infrastructure.Persistence;
 public sealed class PlatformDbContext(DbContextOptions<PlatformDbContext> options) : DbContext(options)
 {
     public DbSet<Tenant> Tenants => Set<Tenant>();
-    public DbSet<PlatformUser> Users => Set<PlatformUser>();
+    public DbSet<User> Users => Set<User>();
     public DbSet<TenantMembership> Memberships => Set<TenantMembership>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -21,9 +21,9 @@ public sealed class PlatformDbContext(DbContextOptions<PlatformDbContext> option
             entity.HasIndex(x => x.Key).IsUnique();
         });
 
-        modelBuilder.Entity<PlatformUser>(entity =>
+        modelBuilder.Entity<User>(entity =>
         {
-            entity.ToTable("PlatformUsers");
+            entity.ToTable("Users");
             entity.HasKey(x => x.Id);
             entity.Property(x => x.UserId).HasMaxLength(64).IsRequired();
             entity.Property(x => x.Email).HasMaxLength(320).IsRequired();

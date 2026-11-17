@@ -12,15 +12,9 @@ docker compose -f docker/docker-compose.yml up --build
 
 Compose builds each app from its own `package.json` and lockfile, installs dependencies in the container, and mounts the app source for live reload. On Windows, file watching uses polling.
 
-The Platform API uses SQL Server Express in the Compose stack. Compose starts the database, waits for its health check, and applies the Platform database migrations when the API starts. The database files persist in the `platform-sql-data` volume.
+Compose starts a PostgreSQL container with a persistent volume and waits for it to become healthy before starting the Platform API. If `docker/platform-api.env` does not exist, copy `docker/platform-api.env.example` to create it. The default development connection string points the API at the Compose service name `postgres`. The database is available to host tools on `localhost:5432`.
 
-Start all services from the repository root:
-
-```sh
-docker compose -f docker/docker-compose.yml up --build
-```
-
-The local development SQL Server password defaults to `LocalDev_StrongPassw0rd!`. To use a different password, set `MSSQL_SA_PASSWORD` in your shell before running Compose. SQL Server requires a strong password. The database is available on `localhost:1433`; the API connects to it using the Compose service name.
+The default development credentials are `platform` / `platform_dev_password` for the `platform` database. Change these together in Compose and `docker/platform-api.env` when needed. Do not commit local secrets; `platform-api.env` is ignored by Git. When the API starts, it applies the PostgreSQL EF Core migrations.
 
 Open the apps at:
 
@@ -50,7 +44,7 @@ View logs with:
 docker compose -f docker/docker-compose.yml logs -f
 ```
 
-Stop the apps while keeping SQL Server data with:
+Stop the apps while keeping PostgreSQL data with:
 
 ```sh
 docker compose -f docker/docker-compose.yml down
@@ -65,4 +59,4 @@ docker compose -f docker/docker-compose.yml down
 docker compose -f docker/docker-compose.yml up --build
 ```
 
-Removing volumes also deletes the SQL Server data. The regular `down` command preserves database data.
+Removing volumes also deletes the PostgreSQL data. The regular `down` command preserves database data.

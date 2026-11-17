@@ -1,3 +1,4 @@
+using BuildingBlocks.Context;
 using System.Text.Json;
 using Microsoft.Extensions.Caching.Distributed;
 
@@ -8,7 +9,7 @@ public sealed class DistributedUserContextCache(IDistributedCache cache) : IUser
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
-    public async ValueTask<UserContextSnapshot?> GetAsync(
+    public async ValueTask<UserContext?> GetAsync(
         string tenantId,
         string userId,
         CancellationToken cancellationToken = default)
@@ -16,11 +17,11 @@ public sealed class DistributedUserContextCache(IDistributedCache cache) : IUser
         var value = await cache.GetStringAsync(Key(tenantId, userId), cancellationToken);
         return value is null
             ? null
-            : JsonSerializer.Deserialize<UserContextSnapshot>(value, JsonOptions);
+            : JsonSerializer.Deserialize<UserContext>(value, JsonOptions);
     }
 
     public async ValueTask SetAsync(
-        UserContextSnapshot snapshot,
+        UserContext context,
         TimeSpan lifetime,
         CancellationToken cancellationToken = default)
     {
@@ -28,8 +29,11 @@ public sealed class DistributedUserContextCache(IDistributedCache cache) : IUser
         {
             AbsoluteExpirationRelativeToNow = lifetime
         };
-        var value = JsonSerializer.Serialize(snapshot, JsonOptions);
-        await cache.SetStringAsync(Key(snapshot.TenantId, snapshot.UserId), value, options, cancellationToken);
+        if (context.TenantId is null || context.UserId is null)
+            throw new ArgumentException("TenantId and UserId are required to cache a user context.", nameof(context));
+
+        var value = JsonSerializer.Serialize(context, JsonOptions);
+        await cache.SetStringAsync(Key(context.TenantId, context.UserId), value, options, cancellationToken);
     }
 
     public async ValueTask RemoveAsync(
@@ -39,5 +43,5 @@ public sealed class DistributedUserContextCache(IDistributedCache cache) : IUser
         await cache.RemoveAsync(Key(tenantId, userId), cancellationToken);
 
     private static string Key(string tenantId, string userId) =>
-        $"user-context:v1:{tenantId}:{userId}";
+        $"user-context:v3:{tenantId}:{userId}";
 }

@@ -1,14 +1,16 @@
+using BuildingBlocks.Context;
+
 namespace BuildingBlocks.Caching;
 
 public interface IUserContextCache
 {
-    ValueTask<UserContextSnapshot?> GetAsync(
+    ValueTask<UserContext?> GetAsync(
         string tenantId,
         string userId,
         CancellationToken cancellationToken = default);
 
     ValueTask SetAsync(
-        UserContextSnapshot snapshot,
+        UserContext context,
         TimeSpan lifetime,
         CancellationToken cancellationToken = default);
 

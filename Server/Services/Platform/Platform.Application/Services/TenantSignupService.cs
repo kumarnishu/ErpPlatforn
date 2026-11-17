@@ -23,7 +23,7 @@ public sealed class TenantSignupService(
             throw new ApiException(409, "EMAIL_EXISTS", "An account with that email already exists.");
 
         var tenant = new Tenant { Key = tenantKey, Name = request.TenantName.Trim() };
-        var user = new PlatformUser
+        var user = new User
         {
             Email = email,
             NormalizedEmail = normalizedEmail,

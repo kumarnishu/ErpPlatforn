@@ -11,7 +11,7 @@ Server/
 |   |-- Platform.Api/     # ASP.NET Core controller host
 |   |-- Platform.Application/ # Signup use case and repository contracts
 |   |-- Platform.Domain/  # Tenant, user, and membership entities
-|   `-- Platform.Infrastructure/ # EF Core repository, SQL Server, password hashing
+|   `-- Platform.Infrastructure/ # EF Core repository, PostgreSQL, password hashing
 |-- Directory.Build.props
 |-- Server.slnx
 `-- README.md
@@ -37,7 +37,7 @@ Example request:
 }
 ```
 
-Configure `ConnectionStrings:PlatformDatabase` or `PLATFORM_DB_CONNECTION` with a SQL Server connection string before using the signup route. `/health` remains available without a database; signup returns 503 until persistence is configured. The API does not issue a login token yet.
+Configure `ConnectionStrings:PlatformDatabase` or `PLATFORM_DB_CONNECTION` with a PostgreSQL connection string before using the signup route. `/health` remains available without a database; signup returns 503 until persistence is configured. The API does not issue a login token yet.
 
 Apply the initial schema from `Server/` after setting `PLATFORM_DB_CONNECTION` in the shell:
 
