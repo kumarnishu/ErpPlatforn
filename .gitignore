@@ -5,6 +5,9 @@
 
 # User-specific files
 docker/platform-api.env
+.env
+.env.*
+!.env.example
 *.rsuser
 *.suo
 *.user

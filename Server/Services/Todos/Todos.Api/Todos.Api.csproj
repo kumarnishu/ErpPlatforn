@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <UserSecretsId>ErpPlatform-TodosApi</UserSecretsId>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../BuildingBlocks/ApiResponses/BuildingBlocks.ApiResponses.csproj" />
+    <ProjectReference Include="../../../BuildingBlocks/Caching/BuildingBlocks.Caching.csproj" />
+    <ProjectReference Include="../../../BuildingBlocks/JWT/BuildingBlocks.JWT.csproj" />
+    <ProjectReference Include="../../../BuildingBlocks/Middleware/BuildingBlocks.Middleware.csproj" />
+    <ProjectReference Include="../../../BuildingBlocks/Swagger/BuildingBlocks.Swagger.csproj" />
+    <ProjectReference Include="../../../BuildingBlocks/UserContext/BuildingBlocks.UserContext.csproj" />
+  </ItemGroup>
+</Project>
