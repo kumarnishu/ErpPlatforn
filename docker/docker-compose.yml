@@ -5,6 +5,7 @@ services:
       dockerfile: docker/Service.Dockerfile
       args:
         PROJECT_PATH: Services/Platform/Platform.Api/Platform.Api.csproj
+        PROJECT_DLL: Platform.Api.dll
     env_file:
       - path: ../.env
         required: false
@@ -19,6 +20,7 @@ services:
       dockerfile: docker/Service.Dockerfile
       args:
         PROJECT_PATH: Services/Todos/Todos.Api/Todos.Api.csproj
+        PROJECT_DLL: Todos.Api.dll
     env_file:
       - path: ../.env
         required: false
