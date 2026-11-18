@@ -7,14 +7,12 @@ using BuildingBlocks.UserContext;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var authority = builder.Configuration["Authentication:Authority"];
 var audience = builder.Configuration["Authentication:Audience"];
 var issuer = builder.Configuration["Authentication:Issuer"];
 var signingKey = builder.Configuration["Authentication:SigningKey"];
-var authenticationConfigured = !string.IsNullOrWhiteSpace(authority)
-    || !string.IsNullOrWhiteSpace(signingKey);
+var authenticationConfigured = !string.IsNullOrWhiteSpace(signingKey);
 
-builder.Services.AddSharedJwtAuthentication(authority, audience, issuer, signingKey);
+builder.Services.AddSharedJwtAuthentication(audience, issuer, signingKey);
 builder.Services.AddSharedDistributedCaches();
 builder.Services.AddUserContext();
 builder.Services.AddApiSwagger("Platform API", "Central platform API");
@@ -44,7 +42,7 @@ else
     app.MapGet("/api/v1/user-context", (HttpContext context) =>
         Results.Json(
             ApiResponse<object>.Failure(
-                new ApiError("AUTHENTICATION_NOT_CONFIGURED", "Configure an authentication authority or signing key."),
+                new ApiError("AUTHENTICATION_NOT_CONFIGURED", "Configure an issuer, audience, and signing key."),
                 context.TraceIdentifier),
             statusCode: StatusCodes.Status503ServiceUnavailable));
 }

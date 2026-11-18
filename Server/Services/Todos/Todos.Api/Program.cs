@@ -6,14 +6,12 @@ using BuildingBlocks.UserContext;
 using Todos.Api;
 
 var builder = WebApplication.CreateBuilder(args);
-var authority = builder.Configuration["Authentication:Authority"];
 var audience = builder.Configuration["Authentication:Audience"];
 var issuer = builder.Configuration["Authentication:Issuer"];
 var signingKey = builder.Configuration["Authentication:SigningKey"];
-var authenticationConfigured = !string.IsNullOrWhiteSpace(authority)
-    || !string.IsNullOrWhiteSpace(signingKey);
+var authenticationConfigured = !string.IsNullOrWhiteSpace(signingKey);
 
-builder.Services.AddSharedJwtAuthentication(authority, audience, issuer, signingKey);
+builder.Services.AddSharedJwtAuthentication(audience, issuer, signingKey);
 builder.Services.AddSharedDistributedCaches();
 builder.Services.AddUserContext();
 builder.Services.AddSingleton<TodoStore>();
@@ -37,7 +35,7 @@ else
     app.Map("/api/v1/todos/{**path}", (HttpContext context) =>
     {
         context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
-        return Results.Problem("Configure an authentication authority or signing key to use the Todos API.");
+        return Results.Problem("Configure an issuer, audience, and signing key to use the Todos API.");
     });
 }
 

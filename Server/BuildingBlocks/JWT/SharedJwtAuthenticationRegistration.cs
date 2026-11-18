@@ -8,40 +8,20 @@ namespace BuildingBlocks.JWT;
 /// <summary>Registers shared JWT bearer validation for service APIs.</summary>
 public static class SharedJwtAuthenticationRegistration
 {
-    /// <summary>Validates tokens from the configured issuer and audience, or leaves the API unauthenticated when unset.</summary>
+    /// <summary>Validates locally issued tokens from the configured issuer and audience, or leaves the API unauthenticated when unset.</summary>
     public static IServiceCollection AddSharedJwtAuthentication(
         this IServiceCollection services,
-        string? authority,
         string? audience,
-        string? issuer = null,
-        string? signingKey = null)
+        string? issuer,
+        string? signingKey)
     {
-        var hasExternalIssuer = !string.IsNullOrWhiteSpace(authority);
-        var hasLocalKey = !string.IsNullOrWhiteSpace(signingKey);
-        if (hasExternalIssuer && hasLocalKey)
-            throw new InvalidOperationException("Configure either Authentication:Authority or Authentication:SigningKey, not both.");
-        if (hasExternalIssuer && string.IsNullOrWhiteSpace(audience))
-            throw new InvalidOperationException("Authentication:Audience is required with Authentication:Authority.");
-        if (hasLocalKey && (string.IsNullOrWhiteSpace(audience) || string.IsNullOrWhiteSpace(issuer)))
+        var authenticationConfigured = !string.IsNullOrWhiteSpace(signingKey);
+        if (authenticationConfigured && (string.IsNullOrWhiteSpace(audience) || string.IsNullOrWhiteSpace(issuer)))
             throw new InvalidOperationException("Authentication:Issuer and Authentication:Audience are required with Authentication:SigningKey.");
 
-        if (!hasExternalIssuer && !hasLocalKey)
+        if (!authenticationConfigured)
         {
             services.AddAuthentication();
-        }
-        else if (hasExternalIssuer)
-        {
-            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-                .AddJwtBearer(options =>
-                {
-                    options.Authority = authority;
-                    options.Audience = audience;
-                    options.TokenValidationParameters = new TokenValidationParameters
-                    {
-                        NameClaimType = JwtClaimTypes.UserId,
-                        RoleClaimType = JwtClaimTypes.Role
-                    };
-                });
         }
         else
         {
