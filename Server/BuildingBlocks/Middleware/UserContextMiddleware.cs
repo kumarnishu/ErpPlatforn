@@ -5,6 +5,7 @@ using BuildingBlocks.Caching;
 using BuildingBlocks.JWT;
 using BuildingBlocks.UserContext;
 using Microsoft.AspNetCore.Http;
+using UserContextModel = BuildingBlocks.UserContext.UserContext;
 
 namespace BuildingBlocks.Middleware;
 
@@ -43,7 +44,7 @@ public sealed class UserContextMiddleware(RequestDelegate next)
     private static ApiException Unauthorized() =>
         new(StatusCodes.Status401Unauthorized, "INVALID_SESSION", "The token is invalid or the session is no longer active.");
 
-    private static bool TryCreateUserContext(ClaimsPrincipal principal, out UserContext? userContext)
+    private static bool TryCreateUserContext(ClaimsPrincipal principal, out UserContextModel? userContext)
     {
         // Build context only from claims in the authenticated principal.
         userContext = null;
@@ -66,7 +67,7 @@ public sealed class UserContextMiddleware(RequestDelegate next)
 
         try
         {
-            userContext = new UserContext(
+            userContext = new UserContextModel(
                 userId,
                 tenantId,
                 tenantKey,
