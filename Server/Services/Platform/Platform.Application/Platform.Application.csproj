@@ -1,6 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <ItemGroup>
-    <ProjectReference Include="../Platform.Domain/Platform.Domain.csproj" />
-    <ProjectReference Include="../../../BuildingBlocks/Http/BuildingBlocks.Http.csproj" />
-  </ItemGroup>
-</Project>

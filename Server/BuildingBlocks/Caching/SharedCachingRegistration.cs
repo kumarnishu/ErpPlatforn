@@ -5,11 +5,11 @@ namespace BuildingBlocks.Caching;
 
 public static class SharedCachingRegistration
 {
-    /// <summary>Register after configuring the host's IDistributedCache provider (for example, Redis).</summary>
+    /// <summary>Registers the in-memory distributed cache for local development.</summary>
     public static IServiceCollection AddSharedDistributedCaches(this IServiceCollection services)
     {
-        services.TryAddSingleton<IUserContextCache, DistributedUserContextCache>();
-        services.TryAddSingleton<ITenantDatabaseRouteCache, DistributedTenantDatabaseRouteCache>();
+        services.AddDistributedMemoryCache();
+        services.TryAddSingleton<IUserTokenCache, DistributedUserTokenCache>();
         return services;
     }
 }

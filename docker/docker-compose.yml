@@ -1,35 +1,4 @@
 services:
-  postgres:
-    image: postgres:17-alpine
-    container_name: erp-postgres
-    environment:
-      POSTGRES_DB: platform
-      POSTGRES_USER: platform
-      POSTGRES_PASSWORD: platform_dev_password
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgresdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U platform -d platform"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
-  platform-api:
-    build:
-      context: ..
-      dockerfile: docker/Server.Dockerfile
-      args:
-        API_PROJECT: Services/Platform/Platform.Api/Platform.Api.csproj
-    ports:
-      - "5000:8080"
-    env_file:
-      - ./platform-api.env
-    depends_on:
-      postgres:
-        condition: service_healthy
-
   erp-webapp:
     build:
       context: ..
@@ -90,5 +59,3 @@ services:
       - /app/node_modules
     command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3004"]
 
-volumes:
-  postgresdata:

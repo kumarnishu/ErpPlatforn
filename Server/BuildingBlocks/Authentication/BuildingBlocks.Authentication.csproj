@@ -1,8 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <ItemGroup>
-    <!-- Provides JWT bearer validation shared by the Platform and business APIs. -->
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.12" />
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <ProjectReference Include="../Context/BuildingBlocks.Context.csproj" />
-  </ItemGroup>
-</Project>
