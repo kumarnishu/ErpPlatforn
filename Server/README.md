@@ -17,7 +17,7 @@ Copy `.env.example` to `.env` at the repository root and configure:
 
 The APIs read the `Authentication:*` settings from environment variables. The Platform API registers its PostgreSQL context only when `ConnectionStrings__PlatformDatabase` is set. The Docker Compose file loads the root `.env` into both API containers; when running in Docker, the database host in the connection string must be reachable from the container and cannot be `localhost` unless PostgreSQL runs in that same container.
 
-Start the Platform API directly from the repo root with:
+Start the Platform API directly from the repository root with:
 
 ```sh
 dotnet run --project Server/Services/Platform/Platform.Api/Platform.Api.csproj
@@ -31,27 +31,27 @@ It listens on the configured ASP.NET Core URLs, or the local default. The Compos
 
 Install the EF command-line tool once (the project includes the EF Core Design package):
 
-```sh
+```bash
 dotnet tool install --global dotnet-ef --version 10.0.0
 ```
 
-If `dotnet-ef` is already installed, update it with `dotnet tool update --global dotnet-ef --version 10.0.0`.
+If `dotnet-ef` is already installed, update it with:
 
-Set the database connection string in your shell before creating or applying a migration. For PowerShell:
-
-```powershell
-$env:ConnectionStrings__PlatformDatabase = "Host=localhost;Port=5432;Database=erp_platform;Username=postgres;Password=replace-me"
+```bash
+dotnet tool update --global dotnet-ef --version 10.0.0
 ```
 
-For Bash:
+Start the Dockerized PostgreSQL database from the repository root:
 
-```sh
-export ConnectionStrings__PlatformDatabase='Host=localhost;Port=5432;Database=erp_platform;Username=postgres;Password=replace-me'
+```bash
+docker compose -f docker/docker-compose.yml up -d postgres
 ```
 
-Create and apply the initial migration from the repository root:
+Run the migration commands below from a Bash shell at the repository root. Set the connection string in the same shell before invoking `dotnet ef`; use the credentials configured in the root `.env` (the defaults shown here are for local development):
 
-```sh
+```bash
+export ConnectionStrings__PlatformDatabase='Host=localhost;Port=5432;Database=erp_platform;Username=postgres;Password=postgres'
+
 dotnet ef migrations add InitialPlatformSchema \
   --project Server/Services/Platform/Platform.Api/Platform.Api.csproj \
   --startup-project Server/Services/Platform/Platform.Api/Platform.Api.csproj \
@@ -62,7 +62,7 @@ dotnet ef database update \
   --startup-project Server/Services/Platform/Platform.Api/Platform.Api.csproj
 ```
 
-PowerShell accepts the same `dotnet ef` arguments on one line, or use its backtick continuation character. Commit generated migration files so other environments can apply the same schema. For later model changes, create a new descriptive migration (for example `AddTenantLogo`) and run `dotnet ef database update` again. Avoid `EnsureCreated`; it does not work with the migrations workflow.
+The connection string uses `localhost` because `dotnet ef` runs on the host; the API container uses `postgres` as its database hostname. Commit generated migration files so other environments can apply the same schema. For later model changes, create a new descriptive migration (for example `AddTenantLogo`) and run `dotnet ef database update` again. Avoid `EnsureCreated`; it does not work with the migrations workflow.
 
 ## APIs
 

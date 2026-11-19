@@ -1,6 +1,7 @@
 using BuildingBlocks.ApiResponses;
 using BuildingBlocks.Caching;
 using BuildingBlocks.UserContext;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Platform.Api.Data;
@@ -25,7 +26,7 @@ public static class AuthEndpoints
 
     private static async Task<IResult> LoginAsync(
         LoginRequest request,
-        PlatformDbContext db,
+        [FromServices] PlatformDbContext db,
         IAuthTokenService tokens,
         IUserTokenCache tokenCache,
         HttpContext context,
@@ -86,7 +87,7 @@ public static class AuthEndpoints
 
     private static async Task<IResult> RefreshAsync(
         RefreshRequest request,
-        PlatformDbContext db,
+        [FromServices] PlatformDbContext db,
         IAuthTokenService tokens,
         IUserTokenCache tokenCache,
         HttpContext context,
@@ -137,7 +138,7 @@ public static class AuthEndpoints
 
     private static async Task<IResult> LogoutAsync(
         IUserContextAccessor accessor,
-        PlatformDbContext db,
+        [FromServices] PlatformDbContext db,
         IUserTokenCache tokenCache,
         HttpContext context,
         CancellationToken cancellationToken)

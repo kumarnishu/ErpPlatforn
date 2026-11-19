@@ -62,6 +62,10 @@ Content-Type: application/json
 GET {{baseUrl}}/api/v1/user-context
 Authorization: Bearer {{loginTenantUser.response.body.$.data.accessToken}}
 
+### Read the current TenantUser profile and tenant information
+GET {{baseUrl}}/api/v1/tenants/me
+Authorization: Bearer {{loginTenantUser.response.body.$.data.accessToken}}
+
 ### Rotate the TenantUser refresh token
 # @name refreshTenantUser
 POST {{baseUrl}}/api/v1/auth/refresh

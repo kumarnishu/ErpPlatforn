@@ -1,6 +1,7 @@
 using System.Net.Mail;
 using BuildingBlocks.ApiResponses;
 using BuildingBlocks.UserContext;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Platform.Api.Data;
@@ -23,12 +24,15 @@ public static class TenantEndpoints
         // Authenticated tenant administrators can create ordinary users only in their own tenant.
         group.MapPost("/users", CreateTenantUserAsync).RequireAuthorization();
 
+        // Return only the signed-in user's profile and tenant information.
+        group.MapGet("/me", GetCurrentUserProfileAsync).RequireAuthorization();
+
         return endpoints;
     }
 
     private static async Task<IResult> CreateTenantAsync(
         CreateTenantRequest request,
-        PlatformDbContext db,
+        [FromServices] PlatformDbContext db,
         HttpContext context,
         CancellationToken cancellationToken)
     {
@@ -97,7 +101,7 @@ public static class TenantEndpoints
     private static async Task<IResult> CreateTenantUserAsync(
         CreateTenantUserRequest request,
         IUserContextAccessor accessor,
-        PlatformDbContext db,
+        [FromServices] PlatformDbContext db,
         HttpContext context,
         CancellationToken cancellationToken)
     {
@@ -148,6 +152,55 @@ public static class TenantEndpoints
                 context.TraceIdentifier));
     }
 
+    private static async Task<IResult> GetCurrentUserProfileAsync(
+        IUserContextAccessor accessor,
+        [FromServices] PlatformDbContext db,
+        HttpContext context,
+        CancellationToken cancellationToken)
+    {
+        var current = accessor.Current;
+        if (current is null)
+            return Results.Json(
+                ApiResponse<object>.Failure(
+                    new ApiError("INVALID_SESSION", "The authenticated user context is unavailable."),
+                    context.TraceIdentifier),
+                statusCode: StatusCodes.Status401Unauthorized);
+
+        var user = await db.Users
+            .AsNoTracking()
+            .Include(x => x.Tenant)
+            .SingleOrDefaultAsync(
+                x => x.Id == current.UserId && x.TenantId == current.TenantId,
+                cancellationToken);
+
+        if (user?.Tenant is not { } tenant)
+            return Results.NotFound(
+                ApiResponse<object>.Failure(
+                    new ApiError("USER_PROFILE_NOT_FOUND", "The user profile or tenant could not be found."),
+                    context.TraceIdentifier));
+
+        var profile = new TenantUserProfileResponse(
+            new UserProfileResponse(
+                user.Id,
+                user.Email,
+                user.DisplayName,
+                user.ProfilePhotoObjectName,
+                user.Role,
+                user.IsActive,
+                user.CreatedAtUtc,
+                user.UpdatedAtUtc),
+            new TenantInfoResponse(
+                tenant.Id,
+                tenant.Name,
+                tenant.Key,
+                tenant.LogoObjectName,
+                tenant.IsActive,
+                tenant.CreatedAtUtc,
+                tenant.UpdatedAtUtc));
+
+        return Results.Ok(ApiResponse<TenantUserProfileResponse>.Success(profile, context.TraceIdentifier));
+    }
+
     private static string? NormalizeEmail(string? email) =>
         string.IsNullOrWhiteSpace(email) ? null : email.Trim().ToLowerInvariant();
 
@@ -183,6 +236,24 @@ public sealed record CreateTenantRequest(
     string? AdminPassword);
 
 public sealed record CreateTenantUserRequest(string? DisplayName, string? Email, string? Password);
+public sealed record TenantUserProfileResponse(UserProfileResponse User, TenantInfoResponse Tenant);
+public sealed record UserProfileResponse(
+    Guid Id,
+    string Email,
+    string DisplayName,
+    string? ProfilePhotoObjectName,
+    string Role,
+    bool IsActive,
+    DateTimeOffset CreatedAtUtc,
+    DateTimeOffset UpdatedAtUtc);
+public sealed record TenantInfoResponse(
+    Guid Id,
+    string Name,
+    string Key,
+    string? LogoObjectName,
+    bool IsActive,
+    DateTimeOffset CreatedAtUtc,
+    DateTimeOffset UpdatedAtUtc);
 public sealed record TenantAdminCreatedResponse(Guid Id, string Email, string DisplayName, string Role);
 public sealed record TenantCreatedResponse(
     Guid Id,
