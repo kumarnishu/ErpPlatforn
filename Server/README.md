@@ -1,30 +1,72 @@
 # Server
 
-The server contains shared .NET building blocks for APIs. Add service projects under `Services/` as the domain is developed.
+The server contains the .NET 10 APIs and shared building blocks. From the repository root, build the solution with:
 
-## Layout
-
-```text
-Server/
-|-- BuildingBlocks/       # Shared API responses, JWT, middleware, Swagger
-|-- BuildingBlocks/GoogleStorage/ # Tenant-scoped Google Cloud Storage adapter
-|-- Services/Platform/   # Central platform API host
-|-- Services/Todos/      # Tenant-scoped todos API
-|-- Directory.Build.props
-|-- Server.slnx
-`-- README.md
+```sh
+dotnet build Server/Server.slnx
 ```
 
-Shared projects can be built from this directory with the .NET 10 SDK using `dotnet build Server.slnx`.
+## Environment setup
 
-## Platform API
+Copy `.env.example` to `.env` at the repository root and configure:
 
-Run the API from this directory with `dotnet run --project Services/Platform/Platform.Api/Platform.Api.csproj`. It exposes `/health` and, when JWT authentication is configured, an authenticated `/api/v1/user-context` endpoint. Configure `Authentication:Issuer`, `Authentication:Audience`, and `Authentication:SigningKey` to validate JWTs issued by your application.
+- `Authentication__Issuer`
+- `Authentication__Audience`
+- `Authentication__SigningKey` (at least 32 bytes; keep real secrets out of source control)
+- `ConnectionStrings__PlatformDatabase` (PostgreSQL connection string)
 
-The Platform API includes a PostgreSQL tenant model in `Services/Platform/Platform.Api/Models/Tenant.cs` and `Data/PlatformDbContext.cs`. Set `ConnectionStrings__PlatformDatabase` to a PostgreSQL connection string to register the EF Core context. The `tenants` table uses UUID primary keys and a unique tenant key. Create migrations with `dotnet ef migrations add <Name> --project Services/Platform/Platform.Api/Platform.Api.csproj` after installing EF Core design-time tooling.
+The APIs read the `Authentication:*` settings from environment variables. The Platform API registers its PostgreSQL context only when `ConnectionStrings__PlatformDatabase` is set. The Docker Compose file loads the root `.env` into both API containers; when running in Docker, the database host in the connection string must be reachable from the container and cannot be `localhost` unless PostgreSQL runs in that same container.
 
-Platform authentication token creation is in `Services/Platform/Platform.Api/Services/AuthTokenService.cs`. It issues 15-minute access tokens and random 30-day refresh tokens with a SHA-256 hash for storing in the user session. Refresh-token validation, session persistence, and atomic hash rotation belong in the platform authentication flow.
+Start the Platform API directly from the repo root with:
 
-Run the tenant-scoped Todos API with `dotnet run --project Services/Todos/Todos.Api/Todos.Api.csproj`. Its authenticated routes under `/api/v1/todos` support listing, creating, updating, and deleting todos. Todo data is currently held in process memory and is cleared when the API restarts.
+```sh
+dotnet run --project Server/Services/Platform/Platform.Api/Platform.Api.csproj
+```
 
-Configuration is supplied through environment variables; there are no `appsettings` files. For Docker Compose, copy the repository's `.env.example` to `.env` and set `Authentication__Audience`, `Authentication__Issuer`, and `Authentication__SigningKey` as needed. The Compose stack loads `.env` into both APIs. Keep real signing keys in your local, ignored `.env` file.
+It listens on the configured ASP.NET Core URLs, or the local default. The Compose ports are `5000` for Platform and `5001` for Todos.
+
+## PostgreSQL and EF Core migrations
+
+`PlatformDbContext` maps tenants, users, sessions, and subscriptions in `Services/Platform/Platform.Api/Data/PlatformDbContext.cs`. The model includes `IsDeleted` flags and global query filters. The repository currently has no checked-in migrations, so create the initial migration once PostgreSQL is available.
+
+Install the EF command-line tool once (the project includes the EF Core Design package):
+
+```sh
+dotnet tool install --global dotnet-ef --version 10.0.0
+```
+
+If `dotnet-ef` is already installed, update it with `dotnet tool update --global dotnet-ef --version 10.0.0`.
+
+Set the database connection string in your shell before creating or applying a migration. For PowerShell:
+
+```powershell
+$env:ConnectionStrings__PlatformDatabase = "Host=localhost;Port=5432;Database=erp_platform;Username=postgres;Password=replace-me"
+```
+
+For Bash:
+
+```sh
+export ConnectionStrings__PlatformDatabase='Host=localhost;Port=5432;Database=erp_platform;Username=postgres;Password=replace-me'
+```
+
+Create and apply the initial migration from the repository root:
+
+```sh
+dotnet ef migrations add InitialPlatformSchema \
+  --project Server/Services/Platform/Platform.Api/Platform.Api.csproj \
+  --startup-project Server/Services/Platform/Platform.Api/Platform.Api.csproj \
+  --output-dir Data/Migrations
+
+dotnet ef database update \
+  --project Server/Services/Platform/Platform.Api/Platform.Api.csproj \
+  --startup-project Server/Services/Platform/Platform.Api/Platform.Api.csproj
+```
+
+PowerShell accepts the same `dotnet ef` arguments on one line, or use its backtick continuation character. Commit generated migration files so other environments can apply the same schema. For later model changes, create a new descriptive migration (for example `AddTenantLogo`) and run `dotnet ef database update` again. Avoid `EnsureCreated`; it does not work with the migrations workflow.
+
+## APIs
+
+- Platform: `POST /api/v1/tenants` creates a tenant and initial administrator; `/api/v1/auth` contains login, refresh, and logout routes; `POST /api/v1/tenants/users` creates a tenant user for the signed-in tenant administrator.
+- Todos: authenticated routes under `/api/v1/todos` list, create, update, and soft-delete in-memory todos. Todo data is cleared when that process restarts.
+
+Manual requests are in the root `ManualTesting/` directory. The two API processes currently use separate in-memory session caches; use a shared cache provider for Platform-issued tokens to validate across APIs.
