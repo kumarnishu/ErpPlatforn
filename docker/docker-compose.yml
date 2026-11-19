@@ -30,6 +30,18 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
   platform-api:
     build:
       context: ..
@@ -43,10 +55,13 @@ services:
     environment:
       ASPNETCORE_URLS: http://+:5000
       ConnectionStrings__PlatformDatabase: Host=postgres;Port=5432;Database=${POSTGRES_DB:-erp_platform};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-postgres}
+      ConnectionStrings__Redis: redis:6379
     ports:
       - "5000:5000"
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
   todos-api:
@@ -61,8 +76,15 @@ services:
         required: false
     environment:
       ASPNETCORE_URLS: http://+:5001
+      ConnectionStrings__TenantDatabaseAdmin: Host=postgres;Port=5432;Database=postgres;Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-postgres}
+      ConnectionStrings__Redis: redis:6379
     ports:
       - "5001:5001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   erp-webapp:
     build:
@@ -127,4 +149,5 @@ services:
 volumes:
   postgres-data:
   pgadmin-data:
+  redis-data:
 

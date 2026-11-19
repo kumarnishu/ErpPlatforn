@@ -1,6 +1,6 @@
 # Docker development environment
 
-The development stack includes PostgreSQL, pgAdmin, both APIs, and the four web apps. Docker Desktop with its Linux engine or Docker Engine with the Compose plugin is sufficient; a host Node.js or npm installation is not required.
+The development stack includes PostgreSQL, pgAdmin, Redis, both APIs, and the four web apps. Docker Desktop with its Linux engine or Docker Engine with the Compose plugin is sufficient; a host Node.js or npm installation is not required.
 
 ## Start
 
@@ -13,6 +13,8 @@ docker compose -f docker/docker-compose.yml up --build
 Compose builds each app from its own `package.json` and lockfile, installs dependencies in the container, and mounts the app source for live reload. On Windows, file watching uses polling.
 
 PostgreSQL stores its data in the `postgres-data` volume. The Platform API waits for PostgreSQL to become healthy and connects to it using the `POSTGRES_*` values. pgAdmin is available at http://localhost:5050; default local login is `admin@example.com` / `admin`. Register the server using host `postgres`, port `5432`, and the database credentials from `.env` (defaults: database `erp_platform`, user `postgres`, password `postgres`). Copy `.env.example` to `.env` to override the local defaults.
+
+Todos API creates a separate database named `erp_tenant_{tenantkey-lowercase}` on the first authenticated todo request for each tenant, then applies the Todos schema migrations. Redis shares login-session cache entries between Platform and Todos APIs.
 
 Open the apps at:
 

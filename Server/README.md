@@ -14,8 +14,10 @@ Copy `.env.example` to `.env` at the repository root and configure:
 - `Authentication__Audience`
 - `Authentication__SigningKey` (at least 32 bytes; keep real secrets out of source control)
 - `ConnectionStrings__PlatformDatabase` (PostgreSQL connection string)
+- `ConnectionStrings__TenantDatabaseAdmin` (PostgreSQL account used by Todos API to create tenant databases; requires `CREATEDB`)
+- `ConnectionStrings__Redis` (shared by Platform and Todos APIs for session validation)
 
-The APIs read the `Authentication:*` settings from environment variables. The Platform API registers its PostgreSQL context only when `ConnectionStrings__PlatformDatabase` is set. The Docker Compose file loads the root `.env` into both API containers; when running in Docker, the database host in the connection string must be reachable from the container and cannot be `localhost` unless PostgreSQL runs in that same container.
+The APIs read settings from environment variables. `dotnet run` does not load the root `.env` automatically, so export the required values in your shell before starting an API. In Docker Compose, the root `.env` is loaded into both API containers and Compose overrides database and Redis hosts to the service names `postgres` and `redis`.
 
 Start the Platform API directly from the repository root with:
 
@@ -27,7 +29,7 @@ It listens on the configured ASP.NET Core URLs, or the local default. The Compos
 
 ## PostgreSQL and EF Core migrations
 
-`PlatformDbContext` maps tenants, users, sessions, and subscriptions in `Services/Platform/Platform.Api/Data/PlatformDbContext.cs`. The model includes `IsDeleted` flags and global query filters. The repository currently has no checked-in migrations, so create the initial migration once PostgreSQL is available.
+`PlatformDbContext` maps tenants, users, sessions, and subscriptions in `Services/Platform/Platform.Api/Data/PlatformDbContext.cs`. The model includes `IsDeleted` flags and global query filters. Its initial migration is checked in under `Services/Platform/Platform.Api/Data/Migrations`.
 
 Install the EF command-line tool once (the project includes the EF Core Design package):
 
@@ -67,6 +69,6 @@ The connection string uses `localhost` because `dotnet ef` runs on the host; the
 ## APIs
 
 - Platform: `POST /api/v1/tenants` creates a tenant and initial administrator; `/api/v1/auth` contains login, refresh, and logout routes; `POST /api/v1/tenants/users` creates a tenant user for the signed-in tenant administrator.
-- Todos: authenticated routes under `/api/v1/todos` list, create, update, and soft-delete in-memory todos. Todo data is cleared when that process restarts.
+- Todos: authenticated routes under `/api/v1/todos` list, create, update, and soft-delete todos. Each signed tenant key is routed to its own PostgreSQL database named `erp_tenant_{tenantkey-lowercase}`. Todos API creates the database on the first authenticated todo request and applies its EF Core migrations automatically. Configure `ConnectionStrings__TenantDatabaseAdmin` with a PostgreSQL account that can create databases; for Compose it is set to the PostgreSQL service automatically.
 
-Manual requests are in the root `ManualTesting/` directory. The two API processes currently use separate in-memory session caches; use a shared cache provider for Platform-issued tokens to validate across APIs.
+Manual requests are in the root `ManualTesting/` directory. Docker Compose uses Redis for a shared session cache so Platform-issued tokens can be validated by Todos API. Outside Compose, configure the same Redis connection string for both APIs; if it is omitted, each process uses its own in-memory cache and tokens won't validate across API processes.

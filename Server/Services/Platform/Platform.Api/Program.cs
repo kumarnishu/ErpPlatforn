@@ -24,7 +24,7 @@ if (!string.IsNullOrWhiteSpace(signingKey) && !string.IsNullOrWhiteSpace(issuer)
     catch (FormatException) { tokenSigningKey = System.Text.Encoding.UTF8.GetBytes(signingKey); }
     builder.Services.AddSingleton<IAuthTokenService>(new AuthTokenService(issuer, audience, tokenSigningKey));
 }
-builder.Services.AddSharedDistributedCaches();
+builder.Services.AddSharedDistributedCaches(builder.Configuration);
 builder.Services.AddUserContext();
 builder.Services.AddApiSwagger("Platform API", "Central platform API");
 
