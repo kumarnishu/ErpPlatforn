@@ -3,6 +3,8 @@
     <UserSecretsId>ErpPlatform-PlatformApi</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
     <ProjectReference Include="../../../BuildingBlocks/ApiResponses/BuildingBlocks.ApiResponses.csproj" />
     <ProjectReference Include="../../../BuildingBlocks/Caching/BuildingBlocks.Caching.csproj" />
     <ProjectReference Include="../../../BuildingBlocks/JWT/BuildingBlocks.JWT.csproj" />

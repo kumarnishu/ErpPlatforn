@@ -1,0 +1,76 @@
+@baseUrl = http://localhost:5000
+@tenantKey = QA1
+@tenantName = Manual Test Tenant
+@adminName = Platform Test Admin
+@adminEmail = admin.qa1@example.com
+@adminPassword = ChangeMe-Admin-2026!
+@userName = Platform Test User
+@userEmail = user.qa1@example.com
+@userPassword = ChangeMe-User-2026!
+
+### Health
+GET {{baseUrl}}/health
+
+### Create a tenant, its TenantAdmin, and a 30-day trial
+# @name createTenant
+POST {{baseUrl}}/api/v1/tenants
+Content-Type: application/json
+
+{
+  "tenantName": "{{tenantName}}",
+  "tenantKey": "{{tenantKey}}",
+  "adminDisplayName": "{{adminName}}",
+  "adminEmail": "{{adminEmail}}",
+  "adminPassword": "{{adminPassword}}"
+}
+
+### Sign in as the new TenantAdmin
+# @name loginAdmin
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "tenantKey": "{{tenantKey}}",
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+### Create a TenantUser in the admin's tenant
+# @name createTenantUser
+POST {{baseUrl}}/api/v1/tenants/users
+Authorization: Bearer {{loginAdmin.response.body.$.data.accessToken}}
+Content-Type: application/json
+
+{
+  "displayName": "{{userName}}",
+  "email": "{{userEmail}}",
+  "password": "{{userPassword}}"
+}
+
+### Sign in as the TenantUser
+# @name loginTenantUser
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "tenantKey": "{{tenantKey}}",
+  "email": "{{userEmail}}",
+  "password": "{{userPassword}}"
+}
+
+### Read the current TenantUser context
+GET {{baseUrl}}/api/v1/user-context
+Authorization: Bearer {{loginTenantUser.response.body.$.data.accessToken}}
+
+### Rotate the TenantUser refresh token
+# @name refreshTenantUser
+POST {{baseUrl}}/api/v1/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{loginTenantUser.response.body.$.data.refreshToken}}"
+}
+
+### Sign out the TenantAdmin session
+POST {{baseUrl}}/api/v1/auth/logout
+Authorization: Bearer {{loginAdmin.response.body.$.data.accessToken}}

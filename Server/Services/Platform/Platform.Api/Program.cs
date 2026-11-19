@@ -4,6 +4,10 @@ using BuildingBlocks.JWT;
 using BuildingBlocks.Middleware;
 using BuildingBlocks.Swagger;
 using BuildingBlocks.UserContext;
+using Microsoft.EntityFrameworkCore;
+using Platform.Api.Data;
+using Platform.Api.Endpoints;
+using Platform.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,9 +17,20 @@ var signingKey = builder.Configuration["Authentication:SigningKey"];
 var authenticationConfigured = !string.IsNullOrWhiteSpace(signingKey);
 
 builder.Services.AddSharedJwtAuthentication(audience, issuer, signingKey);
+if (!string.IsNullOrWhiteSpace(signingKey) && !string.IsNullOrWhiteSpace(issuer) && !string.IsNullOrWhiteSpace(audience))
+{
+    byte[] tokenSigningKey;
+    try { tokenSigningKey = Convert.FromBase64String(signingKey); }
+    catch (FormatException) { tokenSigningKey = System.Text.Encoding.UTF8.GetBytes(signingKey); }
+    builder.Services.AddSingleton<IAuthTokenService>(new AuthTokenService(issuer, audience, tokenSigningKey));
+}
 builder.Services.AddSharedDistributedCaches();
 builder.Services.AddUserContext();
 builder.Services.AddApiSwagger("Platform API", "Central platform API");
+
+var connectionString = builder.Configuration.GetConnectionString("PlatformDatabase");
+if (!string.IsNullOrWhiteSpace(connectionString))
+    builder.Services.AddDbContext<PlatformDbContext>(options => options.UseNpgsql(connectionString));
 
 var app = builder.Build();
 
@@ -30,6 +45,9 @@ app.MapGet("/health", (HttpContext context) =>
     Results.Ok(ApiResponse<object>.Success(
         new { service = "platform", status = "ok" },
         context.TraceIdentifier)));
+
+app.MapAuthEndpoints();
+app.MapTenantEndpoints();
 
 if (authenticationConfigured)
 {

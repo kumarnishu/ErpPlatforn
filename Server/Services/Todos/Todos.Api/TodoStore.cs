@@ -7,7 +7,8 @@ public sealed record TodoItem(
     Guid TenantId,
     string Title,
     bool IsCompleted,
-    DateTimeOffset CreatedAtUtc);
+    DateTimeOffset CreatedAtUtc,
+    bool IsDeleted = false);
 
 public sealed record CreateTodoRequest(string Title);
 public sealed record UpdateTodoRequest(string Title, bool IsCompleted);
@@ -18,10 +19,10 @@ public sealed class TodoStore
     private readonly ConcurrentDictionary<Guid, TodoItem> _items = new();
 
     public IEnumerable<TodoItem> ForTenant(Guid tenantId) =>
-        _items.Values.Where(item => item.TenantId == tenantId).OrderByDescending(item => item.CreatedAtUtc);
+        _items.Values.Where(item => item.TenantId == tenantId && !item.IsDeleted).OrderByDescending(item => item.CreatedAtUtc);
 
     public TodoItem? Find(Guid tenantId, Guid id) =>
-        _items.TryGetValue(id, out var item) && item.TenantId == tenantId ? item : null;
+        _items.TryGetValue(id, out var item) && item.TenantId == tenantId && !item.IsDeleted ? item : null;
 
     public TodoItem Add(Guid tenantId, string title)
     {
@@ -45,5 +46,6 @@ public sealed class TodoStore
     public bool Remove(Guid tenantId, Guid id) =>
         _items.TryGetValue(id, out var item)
         && item.TenantId == tenantId
-        && _items.TryRemove(id, out _);
+        && !item.IsDeleted
+        && _items.TryUpdate(id, item with { IsDeleted = true }, item);
 }

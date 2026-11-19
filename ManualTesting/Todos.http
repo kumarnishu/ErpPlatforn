@@ -1,0 +1,37 @@
+@baseUrl = http://localhost:5001
+@accessToken = replace-with-a-valid-access-token
+
+### Health
+GET {{baseUrl}}/health
+
+### List todos for the authenticated tenant
+GET {{baseUrl}}/api/v1/todos/
+Authorization: Bearer {{accessToken}}
+
+### Create a todo
+# @name createTodo
+POST {{baseUrl}}/api/v1/todos/
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "title": "Review the ERP onboarding flow"
+}
+
+### Get the created todo
+GET {{baseUrl}}/api/v1/todos/{{createTodo.response.body.$.data.id}}
+Authorization: Bearer {{accessToken}}
+
+### Update the created todo
+PUT {{baseUrl}}/api/v1/todos/{{createTodo.response.body.$.data.id}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "title": "Review and document the ERP onboarding flow",
+  "isCompleted": true
+}
+
+### Soft-delete the created todo
+DELETE {{baseUrl}}/api/v1/todos/{{createTodo.response.body.$.data.id}}
+Authorization: Bearer {{accessToken}}
