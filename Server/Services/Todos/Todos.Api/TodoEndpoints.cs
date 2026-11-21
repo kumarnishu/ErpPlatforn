@@ -1,7 +1,8 @@
 using BuildingBlocks.ApiResponses;
 using BuildingBlocks.UserContext;
-using Todos.Core.Interfaces;
 using Todos.Core.Contracts;
+using Todos.Core.Interfaces;
+using Todos.Core.Models;
 
 namespace Todos.Api;
 
