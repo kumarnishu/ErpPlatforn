@@ -45,4 +45,6 @@ public sealed class TenantSubscription : ISoftDeletable
     public DateTimeOffset UpdatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 
     public Tenant? Tenant { get; set; }
+
+    public ICollection<PlatformFeature> PlatformFeatures { get; set; } = new List<PlatformFeature>();
 }

@@ -10,6 +10,7 @@ public sealed class PlatformDbContext(DbContextOptions<PlatformDbContext> option
     public DbSet<PlatformUser> Users => Set<PlatformUser>();
     public DbSet<UserSession> UserSessions => Set<UserSession>();
     public DbSet<TenantSubscription> TenantSubscriptions => Set<TenantSubscription>();
+    public DbSet<PlatformFeature> PlatformFeatures => Set<PlatformFeature>();
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
@@ -102,7 +103,18 @@ public sealed class PlatformDbContext(DbContextOptions<PlatformDbContext> option
         subscription.HasQueryFilter(x => !x.IsDeleted);
         subscription.Property(x => x.CreatedAtUtc).HasColumnName("created_at_utc").HasColumnType("timestamp with time zone").IsRequired();
         subscription.Property(x => x.UpdatedAtUtc).HasColumnName("updated_at_utc").HasColumnType("timestamp with time zone").IsRequired();
-        subscription.HasIndex(x => x.TenantId);
-        subscription.HasOne(x => x.Tenant).WithMany().HasForeignKey(x => x.TenantId).OnDelete(DeleteBehavior.Restrict);
+        subscription.HasIndex(x => x.TenantId).IsUnique();
+        subscription.HasOne(x => x.Tenant).WithOne(x => x.Subscription).HasForeignKey<TenantSubscription>(x => x.TenantId).OnDelete(DeleteBehavior.Restrict);
+
+        var feature = modelBuilder.Entity<PlatformFeature>();
+        feature.ToTable("platform_features");
+        feature.HasKey(x => x.Id);
+        feature.Property(x => x.Id).HasColumnName("id").HasColumnType("uuid");
+        feature.Property(x => x.Code).HasColumnName("code").HasMaxLength(64).IsRequired();
+        feature.Property(x => x.Name).HasColumnName("name").HasMaxLength(100).IsRequired();
+        feature.Property(x => x.Price).HasColumnName("price").HasPrecision(18, 2).IsRequired();
+        feature.Property(x => x.TenantSubscriptionId).HasColumnName("tenant_subscription_id").HasColumnType("uuid").IsRequired();
+        feature.HasIndex(x => new { x.TenantSubscriptionId, x.Code }).IsUnique();
+        feature.HasOne(x => x.TenantSubscription).WithMany(x => x.PlatformFeatures).HasForeignKey(x => x.TenantSubscriptionId).OnDelete(DeleteBehavior.Cascade);
     }
 }

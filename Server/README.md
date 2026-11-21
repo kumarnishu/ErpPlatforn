@@ -15,7 +15,7 @@ Copy `.env.example` to `.env` at the repository root and configure:
 - `Authentication__SigningKey` (at least 32 bytes; keep real secrets out of source control)
 - `ConnectionStrings__PlatformDatabase` (PostgreSQL connection string)
 
-The APIs read the `Authentication:*` settings from environment variables. The Platform API registers its PostgreSQL context only when `ConnectionStrings__PlatformDatabase` is set. The Docker Compose file loads the root `.env` into both API containers; when running in Docker, the database host in the connection string must be reachable from the container and cannot be `localhost` unless PostgreSQL runs in that same container.
+The APIs read the `Authentication:*` settings from environment variables. Both APIs use PostgreSQL through `ConnectionStrings__PlatformDatabase`. The Docker Compose file loads the root `.env` into both API containers; when running in Docker, the database host in the connection string must be reachable from the container and cannot be `localhost` unless PostgreSQL runs in that same container.
 
 Start the Platform API directly from the repository root with:
 
@@ -27,7 +27,7 @@ It listens on the configured ASP.NET Core URLs, or the local default. The Compos
 
 ## PostgreSQL and EF Core migrations
 
-`PlatformDbContext` maps tenants, users, sessions, and subscriptions in `Services/Platform/Platform.Api/Data/PlatformDbContext.cs`. The model includes `IsDeleted` flags and global query filters. The repository currently has no checked-in migrations, so create the initial migration once PostgreSQL is available.
+`PlatformDbContext` maps platform data, and `TodoDbContext` maps tenant-scoped todos. Todos use a separate migration history table (`__TodosMigrationsHistory`) while sharing the configured PostgreSQL database.
 
 Install the EF command-line tool once (the project includes the EF Core Design package):
 
@@ -60,6 +60,15 @@ dotnet ef migrations add InitialPlatformSchema \
 dotnet ef database update \
   --project Server/Services/Platform/Platform.Api/Platform.Api.csproj \
   --startup-project Server/Services/Platform/Platform.Api/Platform.Api.csproj
+
+dotnet ef migrations add InitialTodosSchema \
+  --project Server/Services/Todos/Todos.Api/Todos.Api.csproj \
+  --startup-project Server/Services/Todos/Todos.Api/Todos.Api.csproj \
+  --output-dir Data/Migrations
+
+dotnet ef database update \
+  --project Server/Services/Todos/Todos.Api/Todos.Api.csproj \
+  --startup-project Server/Services/Todos/Todos.Api/Todos.Api.csproj
 ```
 
 The connection string uses `localhost` because `dotnet ef` runs on the host; the API container uses `postgres` as its database hostname. Commit generated migration files so other environments can apply the same schema. For later model changes, create a new descriptive migration (for example `AddTenantLogo`) and run `dotnet ef database update` again. Avoid `EnsureCreated`; it does not work with the migrations workflow.
@@ -67,6 +76,6 @@ The connection string uses `localhost` because `dotnet ef` runs on the host; the
 ## APIs
 
 - Platform: `POST /api/v1/tenants` creates a tenant and initial administrator; `/api/v1/auth` contains login, refresh, and logout routes; `POST /api/v1/tenants/users` creates a tenant user for the signed-in tenant administrator.
-- Todos: authenticated routes under `/api/v1/todos` list, create, update, and soft-delete in-memory todos. Todo data is cleared when that process restarts.
+- Todos: authenticated routes under `/api/v1/todos` list, create, update, and soft-delete tenant-scoped todos stored in PostgreSQL.
 
 Manual requests are in the root `ManualTesting/` directory. The two API processes currently use separate in-memory session caches; use a shared cache provider for Platform-issued tokens to validate across APIs.

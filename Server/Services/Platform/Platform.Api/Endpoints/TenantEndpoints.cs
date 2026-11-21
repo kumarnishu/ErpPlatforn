@@ -13,21 +13,81 @@ public static class TenantEndpoints
 {
     private const string TenantAdminRole = "TenantAdmin";
     private const string TenantUserRole = "TenantUser";
+    private static readonly PlatformFeatureCatalogItem[] PlatformFeatureCatalog =
+    [
+        new("erp", "ERP", 1000m),
+        new("hrms", "HRMS", 1000m),
+        new("checklists", "Checklists", 1000m),
+        new("todos", "Todos", 1000m)
+    ];
 
     public static IEndpointRouteBuilder MapTenantEndpoints(this IEndpointRouteBuilder endpoints)
     {
         var group = endpoints.MapGroup("/api/v1/tenants");
 
-        // Tenant registration creates the first administrator for that tenant.
+        // Register a tenant and its first administrator.
         group.MapPost("/", CreateTenantAsync);
 
-        // Authenticated tenant administrators can create ordinary users only in their own tenant.
+        // List available platform features and their prices.
+        group.MapGet("/features", GetPlatformFeatures);
+
+        // Create a user in the administrator's tenant.
         group.MapPost("/users", CreateTenantUserAsync).RequireAuthorization();
 
-        // Return only the signed-in user's profile and tenant information.
+        // Get the signed-in user's profile and tenant.
         group.MapGet("/me", GetCurrentUserProfileAsync).RequireAuthorization();
 
+        // Replace the tenant's enabled platform features.
+        group.MapPut("/me/features", UpdateFeaturesAsync).RequireAuthorization();
+
         return endpoints;
+    }
+
+    private static IResult GetPlatformFeatures(HttpContext context) =>
+        Results.Ok(ApiResponse<PlatformFeaturesCatalogResponse>.Success(
+            new PlatformFeaturesCatalogResponse(PlatformFeatureCatalog), context.TraceIdentifier));
+
+    private static async Task<IResult> UpdateFeaturesAsync(
+        UpdatePlatformFeaturesRequest request,
+        IUserContextAccessor accessor,
+        [FromServices] PlatformDbContext db,
+        HttpContext context,
+        CancellationToken cancellationToken)
+    {
+        var current = accessor.Current;
+        if (current is null || !string.Equals(current.Role, TenantAdminRole, StringComparison.Ordinal))
+            return Forbidden(context, "TENANT_ADMIN_REQUIRED", "Only a tenant administrator can update platform features.");
+
+        var allowed = PlatformFeatureCatalog.ToDictionary(x => x.Code, StringComparer.OrdinalIgnoreCase);
+        var codes = request.FeatureCodes?.Select(x => x?.Trim().ToLowerInvariant()).ToArray();
+        if (codes is null || codes.Any(x => string.IsNullOrWhiteSpace(x) || !allowed.ContainsKey(x)) ||
+            codes.Distinct(StringComparer.Ordinal).Count() != codes.Length)
+            return BadRequest(context, "INVALID_PLATFORM_FEATURES", "Provide distinct feature codes from: erp, hrms, checklists, todos.");
+
+        var subscription = await db.TenantSubscriptions
+            .Include(x => x.PlatformFeatures)
+            .SingleOrDefaultAsync(x => x.TenantId == current.TenantId, cancellationToken);
+        if (subscription is null)
+            return Results.NotFound(ApiResponse<object>.Failure(
+                new ApiError("SUBSCRIPTION_NOT_FOUND", "The tenant subscription could not be found."), context.TraceIdentifier));
+
+        var selected = codes.Select(x => x!).ToHashSet(StringComparer.Ordinal);
+        db.PlatformFeatures.RemoveRange(subscription.PlatformFeatures.Where(x => !selected.Contains(x.Code)));
+        var existing = subscription.PlatformFeatures.Select(x => x.Code).ToHashSet(StringComparer.Ordinal);
+        foreach (var code in selected.Where(x => !existing.Contains(x)))
+            subscription.PlatformFeatures.Add(new PlatformFeature
+            {
+                Code = code,
+                Name = allowed[code].Name,
+                Price = allowed[code].Price,
+                TenantSubscriptionId = subscription.Id
+            });
+
+        subscription.UpdatedAtUtc = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+
+        return Results.Ok(ApiResponse<PlatformFeaturesResponse>.Success(
+            new PlatformFeaturesResponse(selected.OrderBy(x => x).ToArray()), context.TraceIdentifier));
     }
 
     private static async Task<IResult> CreateTenantAsync(
@@ -234,6 +294,11 @@ public sealed record CreateTenantRequest(
     string? AdminDisplayName,
     string? AdminEmail,
     string? AdminPassword);
+
+public sealed record UpdatePlatformFeaturesRequest(string?[]? FeatureCodes);
+public sealed record PlatformFeaturesResponse(string[] FeatureCodes);
+public sealed record PlatformFeaturesCatalogResponse(PlatformFeatureCatalogItem[] Features);
+public sealed record PlatformFeatureCatalogItem(string Code, string Name, decimal Price);
 
 public sealed record CreateTenantUserRequest(string? DisplayName, string? Email, string? Password);
 public sealed record TenantUserProfileResponse(UserProfileResponse User, TenantInfoResponse Tenant);
