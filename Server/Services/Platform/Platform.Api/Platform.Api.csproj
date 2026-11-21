@@ -15,5 +15,7 @@
     <ProjectReference Include="../../../BuildingBlocks/Middleware/BuildingBlocks.Middleware.csproj" />
     <ProjectReference Include="../../../BuildingBlocks/Swagger/BuildingBlocks.Swagger.csproj" />
     <ProjectReference Include="../../../BuildingBlocks/UserContext/BuildingBlocks.UserContext.csproj" />
+    <ProjectReference Include="../../../BuildingBlocks/TenantMigrations/TenantMigrations.csproj" />
+    <ProjectReference Include="../../Todos/Todos.Core/Todos.Core.csproj" />
   </ItemGroup>
 </Project>

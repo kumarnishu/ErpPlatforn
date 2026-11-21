@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using Todos.Api.Models;
+using Todos.Core.Models;
 
-namespace Todos.Api.Data;
+namespace Todos.Core.Data;
 
 public sealed class TodoDbContext(DbContextOptions<TodoDbContext> options) : DbContext(options)
 {

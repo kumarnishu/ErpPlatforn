@@ -3,10 +3,7 @@ using BuildingBlocks.JWT;
 using BuildingBlocks.Middleware;
 using BuildingBlocks.Swagger;
 using BuildingBlocks.UserContext;
-using Microsoft.EntityFrameworkCore;
-using Todos.Api.Data;
-using Todos.Api.Interfaces;
-using Todos.Api.Services;
+using Todos.Core.Data;
 using Todos.Api;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,11 +17,7 @@ var databaseConfigured = !string.IsNullOrWhiteSpace(connectionString);
 builder.Services.AddSharedJwtAuthentication(audience, issuer, signingKey);
 builder.Services.AddSharedDistributedCaches();
 builder.Services.AddUserContext();
-if (databaseConfigured)
-    builder.Services.AddDbContext<TodoDbContext>(options => options.UseNpgsql(
-        connectionString,
-        postgres => postgres.MigrationsHistoryTable("__TodosMigrationsHistory")));
-builder.Services.AddScoped<ITodoService, TodoService>();
+builder.Services.AddTodosCore();
 builder.Services.AddApiSwagger("Todos API", "Tenant-scoped todo management API");
 
 var app = builder.Build();

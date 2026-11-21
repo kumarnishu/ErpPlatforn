@@ -7,7 +7,9 @@
   <Project Path="BuildingBlocks/JWT/BuildingBlocks.JWT.csproj" />
   <Project Path="BuildingBlocks/Middleware/BuildingBlocks.Middleware.csproj" />
   <Project Path="BuildingBlocks/UserContext/BuildingBlocks.UserContext.csproj" />
+  <Project Path="BuildingBlocks/TenantMigrations/TenantMigrations.csproj" />
   <Project Path="BuildingBlocks/GoogleStorage/BuildingBlocks.GoogleStorage.csproj" />
   <Project Path="Services/Platform/Platform.Api/Platform.Api.csproj" />
   <Project Path="Services/Todos/Todos.Api/Todos.Api.csproj" />
+  <Project Path="Services/Todos/Todos.Core/Todos.Core.csproj" />
 </Solution>

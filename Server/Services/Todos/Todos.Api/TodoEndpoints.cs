@@ -1,8 +1,8 @@
 using BuildingBlocks.ApiResponses;
 using BuildingBlocks.UserContext;
-using Todos.Api.Interfaces;
 using Todos.Api.Models;
-using Todos.Api.Services;
+using Todos.Core.Interfaces;
+using Todos.Core.Models;
 
 namespace Todos.Api;
 
@@ -15,16 +15,16 @@ public static class TodoEndpoints
         // List todos for the signed-in user's tenant.
         group.MapGet("/", async (ITodoService todos, IUserContextAccessor accessor, HttpContext context, CancellationToken cancellationToken) =>
         {
-            if (!TryGetActiveTenant(accessor, out var tenantId)) return Unauthorized(context);
-            var items = await todos.GetForTenantAsync(tenantId, cancellationToken);
+            if (!TryGetActiveTenant(accessor, out var tenantKey, out var tenantId)) return Unauthorized(context);
+            var items = await todos.GetForTenantAsync(tenantKey, tenantId, cancellationToken);
             return Results.Ok(ApiResponse<IReadOnlyList<TodoItem>>.Success(items, context.TraceIdentifier));
         });
 
         // Get one todo from the signed-in user's tenant.
         group.MapGet("/{id:guid}", async (Guid id, ITodoService todos, IUserContextAccessor accessor, HttpContext context, CancellationToken cancellationToken) =>
         {
-            if (!TryGetActiveTenant(accessor, out var tenantId)) return Unauthorized(context);
-            var item = await todos.GetAsync(tenantId, id, cancellationToken);
+            if (!TryGetActiveTenant(accessor, out var tenantKey, out var tenantId)) return Unauthorized(context);
+            var item = await todos.GetAsync(tenantKey, tenantId, id, cancellationToken);
             return item is null
                 ? NotFound(context)
                 : Results.Ok(ApiResponse<TodoItem>.Success(item, context.TraceIdentifier));
@@ -33,24 +33,24 @@ public static class TodoEndpoints
         // Create a todo in the signed-in user's tenant.
         group.MapPost("/", async (CreateTodoRequest request, ITodoService todos, IUserContextAccessor accessor, HttpContext context, CancellationToken cancellationToken) =>
         {
-            if (!TryGetActiveTenant(accessor, out var tenantId)) return Unauthorized(context);
+            if (!TryGetActiveTenant(accessor, out var tenantKey, out var tenantId)) return Unauthorized(context);
             if (string.IsNullOrWhiteSpace(request.Title) || request.Title.Length > 200)
                 return Results.BadRequest(ApiResponse<object>.Failure(
                     new ApiError("INVALID_TODO_TITLE", "Title must be between 1 and 200 characters."), context.TraceIdentifier));
 
-            var item = await todos.CreateAsync(tenantId, request.Title, cancellationToken);
+            var item = await todos.CreateAsync(tenantKey, tenantId, request.Title, cancellationToken);
             return Results.Created($"/api/v1/todos/{item.Id}", ApiResponse<TodoItem>.Success(item, context.TraceIdentifier));
         });
 
         // Update a todo's title and completion status.
         group.MapPut("/{id:guid}", async (Guid id, UpdateTodoRequest request, ITodoService todos, IUserContextAccessor accessor, HttpContext context, CancellationToken cancellationToken) =>
         {
-            if (!TryGetActiveTenant(accessor, out var tenantId)) return Unauthorized(context);
+            if (!TryGetActiveTenant(accessor, out var tenantKey, out var tenantId)) return Unauthorized(context);
             if (string.IsNullOrWhiteSpace(request.Title) || request.Title.Length > 200)
                 return Results.BadRequest(ApiResponse<object>.Failure(
                     new ApiError("INVALID_TODO_TITLE", "Title must be between 1 and 200 characters."), context.TraceIdentifier));
 
-            var item = await todos.UpdateAsync(tenantId, id, request.Title, request.IsCompleted, cancellationToken);
+            var item = await todos.UpdateAsync(tenantKey, tenantId, id, request.Title, request.IsCompleted, cancellationToken);
             return item is null
                 ? NotFound(context)
                 : Results.Ok(ApiResponse<TodoItem>.Success(item, context.TraceIdentifier));
@@ -59,16 +59,17 @@ public static class TodoEndpoints
         // Soft-delete a todo from the signed-in user's tenant.
         group.MapDelete("/{id:guid}", async (Guid id, ITodoService todos, IUserContextAccessor accessor, HttpContext context, CancellationToken cancellationToken) =>
         {
-            if (!TryGetActiveTenant(accessor, out var tenantId)) return Unauthorized(context);
-            return await todos.DeleteAsync(tenantId, id, cancellationToken) ? Results.NoContent() : NotFound(context);
+            if (!TryGetActiveTenant(accessor, out var tenantKey, out var tenantId)) return Unauthorized(context);
+            return await todos.DeleteAsync(tenantKey, tenantId, id, cancellationToken) ? Results.NoContent() : NotFound(context);
         });
 
         return endpoints;
     }
 
-    private static bool TryGetActiveTenant(IUserContextAccessor accessor, out Guid tenantId)
+    private static bool TryGetActiveTenant(IUserContextAccessor accessor, out string tenantKey, out Guid tenantId)
     {
         var user = accessor.Current;
+        tenantKey = user?.TenantKey ?? string.Empty;
         tenantId = user?.TenantId ?? Guid.Empty;
         return user is { IsUserActive: true, IsTenantActive: true };
     }

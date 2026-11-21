@@ -1,11 +1,13 @@
 using System.Net.Mail;
 using BuildingBlocks.ApiResponses;
+using BuildingBlocks.TenantMigrations;
 using BuildingBlocks.UserContext;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Platform.Api.Data;
 using Platform.Api.Models;
+using Platform.Api.Services;
 
 namespace Platform.Api.Endpoints;
 
@@ -50,6 +52,7 @@ public static class TenantEndpoints
     private static async Task<IResult> UpdateFeaturesAsync(
         UpdatePlatformFeaturesRequest request,
         IUserContextAccessor accessor,
+        ITenantDatabaseMigrationService migrations,
         [FromServices] PlatformDbContext db,
         HttpContext context,
         CancellationToken cancellationToken)
@@ -72,6 +75,8 @@ public static class TenantEndpoints
                 new ApiError("SUBSCRIPTION_NOT_FOUND", "The tenant subscription could not be found."), context.TraceIdentifier));
 
         var selected = codes.Select(x => x!).ToHashSet(StringComparer.Ordinal);
+        // Apply selected service schemas before saving the feature selection.
+        await migrations.ApplySelectedAsync(current.TenantKey, selected, cancellationToken);
         db.PlatformFeatures.RemoveRange(subscription.PlatformFeatures.Where(x => !selected.Contains(x.Code)));
         var existing = subscription.PlatformFeatures.Select(x => x.Code).ToHashSet(StringComparer.Ordinal);
         foreach (var code in selected.Where(x => !existing.Contains(x)))

@@ -1,4 +1,4 @@
-namespace Todos.Api.Models;
+namespace Todos.Core.Models;
 
 public sealed class TodoItem
 {
@@ -9,6 +9,3 @@ public sealed class TodoItem
     public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
     public bool IsDeleted { get; set; }
 }
-
-public sealed record CreateTodoRequest(string Title);
-public sealed record UpdateTodoRequest(string Title, bool IsCompleted);

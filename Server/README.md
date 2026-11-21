@@ -15,7 +15,7 @@ Copy `.env.example` to `.env` at the repository root and configure:
 - `Authentication__SigningKey` (at least 32 bytes; keep real secrets out of source control)
 - `ConnectionStrings__PlatformDatabase` (PostgreSQL connection string)
 
-The APIs read the `Authentication:*` settings from environment variables. Both APIs use PostgreSQL through `ConnectionStrings__PlatformDatabase`. The Docker Compose file loads the root `.env` into both API containers; when running in Docker, the database host in the connection string must be reachable from the container and cannot be `localhost` unless PostgreSQL runs in that same container.
+The APIs read the `Authentication:*` settings from environment variables. The Platform API stores platform data in the shared `PlatformDB`. The Todos API uses the same PostgreSQL server credentials and selects a database named `tenant_<tenant-key-lowercase>` for each request. Create each tenant database and apply the Todos migration before using that tenant. The Docker Compose file sets the shared connection string for both API containers; when running in Docker, the database host must be reachable from the container and cannot be `localhost` unless PostgreSQL runs in that same container.
 
 Start the Platform API directly from the repository root with:
 
@@ -27,7 +27,9 @@ It listens on the configured ASP.NET Core URLs, or the local default. The Compos
 
 ## PostgreSQL and EF Core migrations
 
-`PlatformDbContext` maps platform data, and `TodoDbContext` maps tenant-scoped todos. Todos use a separate migration history table (`__TodosMigrationsHistory`) while sharing the configured PostgreSQL database.
+`PlatformDbContext` stores platform data in shared `PlatformDB`. `TodoDbContext` stores Todos in the tenant-specific database selected by the tenant key. Todos use a separate migration history table (`__TodosMigrationsHistory`) in each tenant database.
+
+`BuildingBlocks/TenantMigrations` provides the migration coordinator used when tenants select features. Each service registers an `ITenantMigrationContextFactory` with its feature code; the coordinator calls EF Core `Database.MigrateAsync()` for selected features that have a registered context. Platform currently registers Todos. Register a context factory for each additional service when its database context is available.
 
 Install the EF command-line tool once (the project includes the EF Core Design package):
 
@@ -60,6 +62,8 @@ dotnet ef migrations add InitialPlatformSchema \
 dotnet ef database update \
   --project Server/Services/Platform/Platform.Api/Platform.Api.csproj \
   --startup-project Server/Services/Platform/Platform.Api/Platform.Api.csproj
+
+export TenantKey=QA1
 
 dotnet ef migrations add InitialTodosSchema \
   --project Server/Services/Todos/Todos.Api/Todos.Api.csproj \

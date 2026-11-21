@@ -3,11 +3,13 @@ using BuildingBlocks.Caching;
 using BuildingBlocks.JWT;
 using BuildingBlocks.Middleware;
 using BuildingBlocks.Swagger;
+using BuildingBlocks.TenantMigrations;
 using BuildingBlocks.UserContext;
 using Microsoft.EntityFrameworkCore;
 using Platform.Api.Data;
 using Platform.Api.Endpoints;
 using Platform.Api.Services;
+using Todos.Core.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +29,9 @@ if (!string.IsNullOrWhiteSpace(signingKey) && !string.IsNullOrWhiteSpace(issuer)
 builder.Services.AddSharedDistributedCaches();
 builder.Services.AddUserContext();
 builder.Services.AddApiSwagger("Platform API", "Central platform API");
+// Register the migration coordinator and the service contexts it can migrate.
+builder.Services.AddTenantDatabaseMigrations();
+builder.Services.AddTodosTenantDatabaseMigrations();
 
 var connectionString = builder.Configuration.GetConnectionString("PlatformDatabase");
 if (!string.IsNullOrWhiteSpace(connectionString))
