@@ -1,20 +1,30 @@
-# Docker development environment
+# Docker environments
 
-The development stack includes PostgreSQL, pgAdmin, both APIs, and the four web apps. Docker Desktop with its Linux engine or Docker Engine with the Compose plugin is sufficient; a host Node.js or npm installation is not required.
+Docker Compose is split into server development, server runtime, and web app stacks. Run commands from the repository root. Docker Desktop with its Linux engine or Docker Engine with the Compose plugin is sufficient.
 
-## Start
-
-From the repository root, run:
+## Server development stack
 
 ```sh
-docker compose -f docker/docker-compose.yml up --build
+docker compose -f docker/server.dev.yml up --build
 ```
 
-Compose builds each app from its own `package.json` and lockfile, installs dependencies in the container, and mounts the app source for live reload. On Windows, file watching uses polling.
+This starts PostgreSQL, pgAdmin, and both APIs with `dotnet watch`. API source is mounted from `Server/` for live reload. Set `POSTGRES_*` and `PGADMIN_*` values in `.env` to override local defaults.
 
-PostgreSQL stores its data in the `postgres-data` volume. The Platform API waits for PostgreSQL to become healthy and connects to it using the `POSTGRES_*` values. pgAdmin is available at http://localhost:5050; default local login is `admin@example.com` / `admin`. Register the server using host `postgres`, port `5432`, and the database credentials from `.env` (defaults: database `erp_platform`, user `postgres`, password `postgres`). Copy `.env.example` to `.env` to override the local defaults.
+## Server runtime stack
 
-Open the apps at:
+```sh
+docker compose -f docker/server.yml up --build
+```
+
+This uses the published API containers with PostgreSQL and pgAdmin. PostgreSQL data persists in the `postgres-data` volume. pgAdmin is available at http://localhost:5050; default local login is `admin@example.com` / `admin`. Register the server using host `postgres`, port `5432`, and the database credentials from `.env` (defaults: database `erp_platform`, user `postgres`, password `postgres`).
+
+## Web app development stack
+
+```sh
+docker compose -f docker/webapp.yml up --build
+```
+
+Compose installs each app's dependencies in its container and mounts app source for live reload. On Windows, file watching uses polling. Open the apps at:
 
 | App | URL |
 | --- | --- |
@@ -22,36 +32,28 @@ Open the apps at:
 | HRMS | http://localhost:3001 |
 | Dashboard | http://localhost:3002 |
 | Superadmin | http://localhost:3004 |
-| pgAdmin | http://localhost:5050 |
+| pgAdmin | http://localhost:5050 (server stacks) |
 
-## Run selected apps
-
-Pass one or more app names to Compose, for example:
+To run selected apps, append service names, such as:
 
 ```sh
-docker compose -f docker/docker-compose.yml up --build erp-webapp dashboard-webapp
+docker compose -f docker/webapp.yml up --build erp-webapp dashboard-webapp
 ```
 
-The other app names are `hrms-webapp` and `superadmin-webapp`. Omit names to run all apps.
+The other web app service names are `hrms-webapp` and `superadmin-webapp`. Omit names to run all apps.
 
-## Stop and refresh dependencies
+## Logs and shutdown
 
-View logs with:
+Use the same Compose file to view logs or stop that stack:
 
 ```sh
-docker compose -f docker/docker-compose.yml logs -f
+docker compose -f docker/server.dev.yml logs -f
+docker compose -f docker/server.dev.yml down
 ```
 
-Stop the apps with:
+Replace `server.dev.yml` with `server.yml` or `webapp.yml` as needed. If a web app's package files change, recreate the containers and dependency volumes to refresh dependencies:
 
 ```sh
-docker compose -f docker/docker-compose.yml down
+docker compose -f docker/webapp.yml down
+docker compose -f docker/webapp.yml up --build
 ```
-
-If a `package.json` or lockfile changes and dependencies need refreshing, recreate the containers and their dependency volumes:
-
-```sh
-docker compose -f docker/docker-compose.yml down
-docker compose -f docker/docker-compose.yml up --build
-```
-

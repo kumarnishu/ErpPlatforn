@@ -34,6 +34,6 @@ Copy `.env.example` to `.env` in the repository root. Configure the authenticati
 The development Compose stack starts the APIs and web apps:
 
 ```sh
-docker compose -f docker/docker-compose.yml up --build
+docker compose -f docker/server.dev.yml up --build
 ```
 

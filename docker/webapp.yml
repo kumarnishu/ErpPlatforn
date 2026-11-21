@@ -1,0 +1,60 @@
+services:
+  erp-webapp:
+    build:
+      context: ..
+      dockerfile: docker/Webapp.Dockerfile
+      args:
+        APP_DIR: erp-webapp
+    ports:
+      - "3000:3000"
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+    volumes:
+      - ../webapp/erp-webapp:/app
+      - /app/node_modules
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"]
+
+  hrms-webapp:
+    build:
+      context: ..
+      dockerfile: docker/Webapp.Dockerfile
+      args:
+        APP_DIR: hrms-webapp
+    ports:
+      - "3001:3001"
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+    volumes:
+      - ../webapp/hrms-webapp:/app
+      - /app/node_modules
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3001"]
+
+  dashboard-webapp:
+    build:
+      context: ..
+      dockerfile: docker/Webapp.Dockerfile
+      args:
+        APP_DIR: dashboard-webapp
+    ports:
+      - "3002:3002"
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+    volumes:
+      - ../webapp/dashboard-webapp:/app
+      - /app/node_modules
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3002"]
+
+  superadmin-webapp:
+    build:
+      context: ..
+      dockerfile: docker/Webapp.Dockerfile
+      args:
+        APP_DIR: superadmin-webapp
+    ports:
+      - "3004:3004"
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+    volumes:
+      - ../webapp/superadmin-webapp:/app
+      - /app/node_modules
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3004"]

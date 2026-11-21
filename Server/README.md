@@ -44,7 +44,7 @@ dotnet tool update --global dotnet-ef --version 10.0.0
 Start the Dockerized PostgreSQL database from the repository root:
 
 ```bash
-docker compose -f docker/docker-compose.yml up -d postgres
+docker compose -f docker/server.dev.yml up -d postgres
 ```
 
 Run EF commands from a Bash shell at the repository root. Set the connection string in the same shell before invoking `dotnet ef`; use the credentials configured in the root `.env` (the defaults shown here are for local development):

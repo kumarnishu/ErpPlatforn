@@ -33,10 +33,9 @@ services:
   platform-api:
     build:
       context: ..
-      dockerfile: docker/Service.Dockerfile
+      dockerfile: docker/Server.Dev.DockerFile
       args:
         PROJECT_PATH: Services/Platform/Platform.Api/Platform.Api.csproj
-        PROJECT_DLL: Platform.Api.dll
     env_file:
       - path: ../.env
         required: false
@@ -45,6 +44,8 @@ services:
       ConnectionStrings__PlatformDatabase: Host=postgres;Port=5432;Database=${POSTGRES_DB:-erp_platform};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-postgres}
     ports:
       - "5000:5000"
+    volumes:
+      - ../Server:/src/Server
     depends_on:
       postgres:
         condition: service_healthy
@@ -52,10 +53,9 @@ services:
   todos-api:
     build:
       context: ..
-      dockerfile: docker/Service.Dockerfile
+      dockerfile: docker/Server.Dev.DockerFile
       args:
         PROJECT_PATH: Services/Todos/Todos.Api/Todos.Api.csproj
-        PROJECT_DLL: Todos.Api.dll
     env_file:
       - path: ../.env
         required: false
@@ -64,71 +64,12 @@ services:
       ConnectionStrings__PlatformDatabase: Host=postgres;Port=5432;Database=${POSTGRES_DB:-erp_platform};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-postgres}
     ports:
       - "5001:5001"
+    volumes:
+      - ../Server:/src/Server
     depends_on:
       postgres:
         condition: service_healthy
 
-  erp-webapp:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
-      args:
-        APP_DIR: erp-webapp
-    ports:
-      - "3000:3000"
-    environment:
-      CHOKIDAR_USEPOLLING: "true"
-    volumes:
-      - ../webapp/erp-webapp:/app
-      - /app/node_modules
-    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"]
-
-  hrms-webapp:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
-      args:
-        APP_DIR: hrms-webapp
-    ports:
-      - "3001:3001"
-    environment:
-      CHOKIDAR_USEPOLLING: "true"
-    volumes:
-      - ../webapp/hrms-webapp:/app
-      - /app/node_modules
-    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3001"]
-
-  dashboard-webapp:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
-      args:
-        APP_DIR: dashboard-webapp
-    ports:
-      - "3002:3002"
-    environment:
-      CHOKIDAR_USEPOLLING: "true"
-    volumes:
-      - ../webapp/dashboard-webapp:/app
-      - /app/node_modules
-    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3002"]
-
-  superadmin-webapp:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
-      args:
-        APP_DIR: superadmin-webapp
-    ports:
-      - "3004:3004"
-    environment:
-      CHOKIDAR_USEPOLLING: "true"
-    volumes:
-      - ../webapp/superadmin-webapp:/app
-      - /app/node_modules
-    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3004"]
-
 volumes:
   postgres-data:
   pgadmin-data:
-
