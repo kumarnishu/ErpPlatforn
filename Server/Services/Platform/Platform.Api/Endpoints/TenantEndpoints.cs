@@ -67,29 +67,53 @@ public static class TenantEndpoints
             codes.Distinct(StringComparer.Ordinal).Count() != codes.Length)
             return BadRequest(context, "INVALID_PLATFORM_FEATURES", "Provide distinct feature codes from: erp, hrms, checklists, todos.");
 
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        // Serialize feature updates for this tenant so another request cannot remove or
+        // modify a feature row between loading it and saving the updated migration state.
+        var lockedSubscriptionId = await db.Database
+            .SqlQuery<Guid>($"SELECT id AS \"Value\" FROM tenant_subscriptions WHERE tenant_id = {current.TenantId} AND NOT is_deleted FOR UPDATE")
+            .SingleOrDefaultAsync(cancellationToken);
+        if (lockedSubscriptionId == Guid.Empty)
+            return Results.NotFound(ApiResponse<object>.Failure(
+                new ApiError("SUBSCRIPTION_NOT_FOUND", "The tenant subscription could not be found."), context.TraceIdentifier));
+
         var subscription = await db.TenantSubscriptions
             .Include(x => x.PlatformFeatures)
-            .SingleOrDefaultAsync(x => x.TenantId == current.TenantId, cancellationToken);
+            .SingleOrDefaultAsync(x => x.Id == lockedSubscriptionId, cancellationToken);
         if (subscription is null)
             return Results.NotFound(ApiResponse<object>.Failure(
                 new ApiError("SUBSCRIPTION_NOT_FOUND", "The tenant subscription could not be found."), context.TraceIdentifier));
 
         var selected = codes.Select(x => x!).ToHashSet(StringComparer.Ordinal);
-        // Apply selected service schemas before saving the feature selection.
-        await migrations.ApplySelectedAsync(current.TenantKey, selected, cancellationToken);
+        var featuresToInitialize = subscription.PlatformFeatures
+            .Where(x => selected.Contains(x.Code) && !x.IsDbCreated)
+            .Select(x => x.Code)
+            .Concat(selected.Where(code => subscription.PlatformFeatures.All(x => !string.Equals(x.Code, code, StringComparison.Ordinal))))
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+
+        // Initialize selected feature schemas only once, before saving the selection.
+        var initializedFeatures = await migrations.ApplySelectedAsync(current.TenantKey, featuresToInitialize, cancellationToken);
         db.PlatformFeatures.RemoveRange(subscription.PlatformFeatures.Where(x => !selected.Contains(x.Code)));
         var existing = subscription.PlatformFeatures.Select(x => x.Code).ToHashSet(StringComparer.Ordinal);
         foreach (var code in selected.Where(x => !existing.Contains(x)))
-            subscription.PlatformFeatures.Add(new PlatformFeature
+        {
+            var feature = new PlatformFeature
             {
                 Code = code,
                 Name = allowed[code].Name,
                 Price = allowed[code].Price,
-                TenantSubscriptionId = subscription.Id
-            });
+                TenantSubscriptionId = subscription.Id,
+                IsDbCreated = initializedFeatures.Contains(code)
+            };
+            subscription.PlatformFeatures.Add(feature);
+        }
+        foreach (var feature in subscription.PlatformFeatures.Where(x => selected.Contains(x.Code) && initializedFeatures.Contains(x.Code)))
+            feature.IsDbCreated = true;
 
         subscription.UpdatedAtUtc = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         return Results.Ok(ApiResponse<PlatformFeaturesResponse>.Success(
             new PlatformFeaturesResponse(selected.OrderBy(x => x).ToArray()), context.TraceIdentifier));

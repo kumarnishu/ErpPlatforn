@@ -113,6 +113,7 @@ public sealed class PlatformDbContext(DbContextOptions<PlatformDbContext> option
         feature.Property(x => x.Code).HasColumnName("code").HasMaxLength(64).IsRequired();
         feature.Property(x => x.Name).HasColumnName("name").HasMaxLength(100).IsRequired();
         feature.Property(x => x.Price).HasColumnName("price").HasPrecision(18, 2).IsRequired();
+        feature.Property(x => x.IsDbCreated).HasColumnName("is_db_created").IsRequired();
         feature.Property(x => x.TenantSubscriptionId).HasColumnName("tenant_subscription_id").HasColumnType("uuid").IsRequired();
         feature.HasIndex(x => new { x.TenantSubscriptionId, x.Code }).IsUnique();
         feature.HasOne(x => x.TenantSubscription).WithMany(x => x.PlatformFeatures).HasForeignKey(x => x.TenantSubscriptionId).OnDelete(DeleteBehavior.Cascade);

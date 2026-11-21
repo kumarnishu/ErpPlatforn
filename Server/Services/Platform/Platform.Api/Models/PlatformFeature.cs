@@ -12,6 +12,9 @@ public sealed class PlatformFeature
 
     public decimal Price { get; set; }
 
+    /// <summary>Whether this feature's tenant database migrations have been applied.</summary>
+    public bool IsDbCreated { get; set; }
+
     public Guid TenantSubscriptionId { get; set; }
 
     public TenantSubscription? TenantSubscription { get; set; }

@@ -11,11 +11,12 @@ public sealed class TenantDatabaseMigrationService(
     private readonly IReadOnlyDictionary<string, ITenantMigrationContextFactory> _factories =
         contextFactories.ToDictionary(x => x.FeatureCode, StringComparer.OrdinalIgnoreCase);
 
-    public async Task ApplySelectedAsync(
+    public async Task<IReadOnlySet<string>> ApplySelectedAsync(
         string tenantKey,
         IEnumerable<string> featureCodes,
         CancellationToken cancellationToken)
     {
+        var applied = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var featureCode in featureCodes.Distinct(StringComparer.OrdinalIgnoreCase))
         {
             if (!_factories.TryGetValue(featureCode, out var factory))
@@ -26,6 +27,9 @@ public sealed class TenantDatabaseMigrationService(
 
             await using var db = factory.Create(tenantKey);
             await db.Database.MigrateAsync(cancellationToken);
+            applied.Add(featureCode);
         }
+
+        return applied;
     }
 }

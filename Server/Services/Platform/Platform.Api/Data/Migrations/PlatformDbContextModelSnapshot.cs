@@ -22,6 +22,46 @@ namespace Platform.Api.Data.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Platform.Api.Models.PlatformFeature", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("code");
+
+                    b.Property<bool>("IsDbCreated")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_db_created");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("price");
+
+                    b.Property<Guid>("TenantSubscriptionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_subscription_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantSubscriptionId", "Code")
+                        .IsUnique();
+
+                    b.ToTable("platform_features", (string)null);
+                });
+
             modelBuilder.Entity("Platform.Api.Models.PlatformUser", b =>
                 {
                     b.Property<Guid>("Id")
@@ -199,7 +239,8 @@ namespace Platform.Api.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TenantId");
+                    b.HasIndex("TenantId")
+                        .IsUnique();
 
                     b.ToTable("tenant_subscriptions", (string)null);
                 });
@@ -259,6 +300,17 @@ namespace Platform.Api.Data.Migrations
                     b.ToTable("user_sessions", (string)null);
                 });
 
+            modelBuilder.Entity("Platform.Api.Models.PlatformFeature", b =>
+                {
+                    b.HasOne("Platform.Api.Models.TenantSubscription", "TenantSubscription")
+                        .WithMany("PlatformFeatures")
+                        .HasForeignKey("TenantSubscriptionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("TenantSubscription");
+                });
+
             modelBuilder.Entity("Platform.Api.Models.PlatformUser", b =>
                 {
                     b.HasOne("Platform.Api.Models.Tenant", "Tenant")
@@ -273,8 +325,8 @@ namespace Platform.Api.Data.Migrations
             modelBuilder.Entity("Platform.Api.Models.TenantSubscription", b =>
                 {
                     b.HasOne("Platform.Api.Models.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
+                        .WithOne("Subscription")
+                        .HasForeignKey("Platform.Api.Models.TenantSubscription", "TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -298,6 +350,16 @@ namespace Platform.Api.Data.Migrations
                     b.Navigation("Tenant");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Platform.Api.Models.Tenant", b =>
+                {
+                    b.Navigation("Subscription");
+                });
+
+            modelBuilder.Entity("Platform.Api.Models.TenantSubscription", b =>
+                {
+                    b.Navigation("PlatformFeatures");
                 });
 #pragma warning restore 612, 618
         }
