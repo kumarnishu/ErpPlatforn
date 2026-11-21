@@ -1,9 +1,5 @@
 # Manual API requests
 
-These `.http` files can be run with the VS Code REST Client extension or another HTTP client that supports the `.http` request format.
+Run the `.http` requests with the VS Code REST Client or another compatible client. Start the APIs with the instructions in [docker/README.md](../docker/README.md), or run them directly. Default URLs: Platform `http://localhost:5000`; Todos `http://localhost:5001`.
 
-Start the APIs with Docker Compose from `docker/` or run the projects directly. The default local URLs are Platform API `http://localhost:5000` and Todos API `http://localhost:5001`.
-
-PlatformDB must have the Platform migration applied, and each tenant database (`tenant_<tenant-key-lowercase>`) must have the Todos migration applied. Set `Authentication__Issuer`, `Authentication__Audience`, and `Authentication__SigningKey` for login and authenticated routes. Both APIs keep their development session cache in memory, so a Platform-issued token will not validate in Todos across separate API processes unless both are configured with a shared cache provider.
-
-`Platform.http` covers tenant creation, the public feature catalog, admin and user sign-in, tenant user creation, user context and profile, tenant feature updates, refresh, and logout. Change the sample tenant key and credentials before creating another tenant; tenant keys are unique. The feature update request replaces the tenant's selected features and initializes their database schemas when migrations are registered.
+Before testing, configure authentication and apply the Platform and tenant database migrations as described in [Server/README.md](../Server/README.md). `Platform.http` includes tenant creation, authentication, user, feature, refresh, and logout examples. Change the sample tenant key and credentials before creating another tenant.
