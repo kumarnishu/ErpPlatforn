@@ -11,6 +11,9 @@
 ### Health
 GET {{baseUrl}}/health
 
+### List available platform features and prices
+GET {{baseUrl}}/api/v1/tenants/features
+
 ### Create a tenant, its TenantAdmin, and a 30-day trial
 # @name createTenant
 POST {{baseUrl}}/api/v1/tenants
@@ -65,6 +68,16 @@ Authorization: Bearer {{loginTenantUser.response.body.$.data.accessToken}}
 ### Read the current TenantUser profile and tenant information
 GET {{baseUrl}}/api/v1/tenants/me
 Authorization: Bearer {{loginTenantUser.response.body.$.data.accessToken}}
+
+### Replace the tenant's enabled platform features (TenantAdmin only)
+# @name updateTenantFeatures
+PUT {{baseUrl}}/api/v1/tenants/me/features
+Authorization: Bearer {{loginAdmin.response.body.$.data.accessToken}}
+Content-Type: application/json
+
+{
+  "featureCodes": ["todos"]
+}
 
 ### Rotate the TenantUser refresh token
 # @name refreshTenantUser
