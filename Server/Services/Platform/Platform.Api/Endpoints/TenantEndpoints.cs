@@ -94,9 +94,22 @@ public static class TenantEndpoints
 
         // Initialize selected feature schemas only once, before saving the selection.
         var initializedFeatures = await migrations.ApplySelectedAsync(current.TenantKey, featuresToInitialize, cancellationToken);
-        db.PlatformFeatures.RemoveRange(subscription.PlatformFeatures.Where(x => !selected.Contains(x.Code)));
+        var readyFeatures = selected.Where(code => initializedFeatures.Contains(code) ||
+            subscription.PlatformFeatures.Any(x => string.Equals(x.Code, code, StringComparison.Ordinal) && x.IsDbCreated))
+            .ToHashSet(StringComparer.Ordinal);
+        var unappliedFeatures = selected.Except(readyFeatures, StringComparer.Ordinal).ToArray();
+        if (unappliedFeatures.Length > 0)
+            return Results.Json(
+                ApiResponse<object>.Failure(
+                    new ApiError(
+                        "FEATURE_MIGRATION_NOT_APPLIED",
+                        $"No registered migration context successfully initialized these features: {string.Join(", ", unappliedFeatures)}."),
+                    context.TraceIdentifier),
+                statusCode: StatusCodes.Status503ServiceUnavailable);
+
+        db.PlatformFeatures.RemoveRange(subscription.PlatformFeatures.Where(x => !readyFeatures.Contains(x.Code)));
         var existing = subscription.PlatformFeatures.Select(x => x.Code).ToHashSet(StringComparer.Ordinal);
-        foreach (var code in selected.Where(x => !existing.Contains(x)))
+        foreach (var code in readyFeatures.Where(x => !existing.Contains(x)))
         {
             var feature = new PlatformFeature
             {
@@ -104,11 +117,11 @@ public static class TenantEndpoints
                 Name = allowed[code].Name,
                 Price = allowed[code].Price,
                 TenantSubscriptionId = subscription.Id,
-                IsDbCreated = initializedFeatures.Contains(code)
+                IsDbCreated = true
             };
             subscription.PlatformFeatures.Add(feature);
         }
-        foreach (var feature in subscription.PlatformFeatures.Where(x => selected.Contains(x.Code) && initializedFeatures.Contains(x.Code)))
+        foreach (var feature in subscription.PlatformFeatures.Where(x => readyFeatures.Contains(x.Code)))
             feature.IsDbCreated = true;
 
         subscription.UpdatedAtUtc = DateTimeOffset.UtcNow;
@@ -116,7 +129,7 @@ public static class TenantEndpoints
         await transaction.CommitAsync(cancellationToken);
 
         return Results.Ok(ApiResponse<PlatformFeaturesResponse>.Success(
-            new PlatformFeaturesResponse(selected.OrderBy(x => x).ToArray()), context.TraceIdentifier));
+            new PlatformFeaturesResponse(readyFeatures.OrderBy(x => x).ToArray()), context.TraceIdentifier));
     }
 
     private static async Task<IResult> CreateTenantAsync(

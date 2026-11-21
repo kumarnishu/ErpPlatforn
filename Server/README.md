@@ -84,7 +84,7 @@ dotnet ef migrations add AddYourChange \
   --output-dir Data/Migrations
 ```
 
-Commit the generated migration files with the model changes. A tenant admin updates selected features through `PUT /api/v1/tenants/me/features`; the endpoint applies migrations for selected service features that are not yet marked `IsDbCreated`, then records successful initialization in PlatformDB. Repeating the feature update skips migrations already marked as initialized. Ensure the tenant database exists before the feature is selected. The connection string uses `localhost` because `dotnet ef` runs on the host; API containers use `postgres` as the database hostname. Avoid `EnsureCreated`; it does not work with the migrations workflow.
+Commit the generated migration files with the model changes. A tenant admin updates selected features through `PUT /api/v1/tenants/me/features`; the endpoint applies migrations for selected service features that are not yet marked `IsDbCreated`, then records the feature rows in PlatformDB only after every selected feature has a registered migration context and migration succeeds. Otherwise it returns `503 FEATURE_MIGRATION_NOT_APPLIED` without saving the feature selection. Repeating the feature update skips migrations already marked as initialized. Ensure the tenant database exists before the feature is selected. The connection string uses `localhost` because `dotnet ef` runs on the host; API containers use `postgres` as the database hostname. Avoid `EnsureCreated`; it does not work with the migrations workflow.
 
 ## APIs
 
